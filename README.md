@@ -1,4 +1,8 @@
-# 🤖 Bobby - Your Smart Reading Buddy
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="Bobby Icon">
+</p>
+
+# Bobby - Your Smart Reading Buddy
 
 Meet Bobby, your friendly AI reading companion! Like having a witty, well-read friend who's always ready to explain things (and actually knows what they're talking about). Highlight any text to get instant explanations, insights, and curated recommendations from the smartest corners of the internet.
 
