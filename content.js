@@ -47,6 +47,63 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
     }
   });
 
+  const initResize = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    let isResizing = true;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = annotationDiv.offsetWidth;
+    const startHeight = annotationDiv.offsetHeight;
+    
+    const resize = (e) => {
+      if (!isResizing || !annotationDiv) return;
+      
+      requestAnimationFrame(() => {
+        // Calculate deltas
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        
+        // Set new dimensions
+        const newWidth = Math.min(800, Math.max(300, startWidth + deltaX));
+        const newHeight = Math.min(800, Math.max(200, startHeight + deltaY));
+        
+        // Apply dimensions
+        annotationDiv.style.width = `${newWidth}px`;
+        annotationDiv.style.height = `${newHeight}px`;
+        
+        // Adjust content height
+        const header = annotationDiv.querySelector('.modern-popout-header');
+        const content = annotationDiv.querySelector('.modern-popout-body');
+        if (content && header) {
+          content.style.height = `${newHeight - header.offsetHeight - 32}px`;
+        }
+      });
+    };
+
+    const stopResize = () => {
+      isResizing = false;
+      document.body.style.cursor = '';
+      document.removeEventListener('mousemove', resize);
+      document.removeEventListener('mouseup', stopResize);
+      document.removeEventListener('mouseleave', stopResize);
+      if (annotationDiv) {
+        annotationDiv.classList.remove('resizing');
+        // Ensure popup stays visible
+        annotationDiv.style.display = 'flex';
+        annotationDiv.style.opacity = '1';
+      }
+    };
+
+    // Set cursor for entire document during resize
+    document.body.style.cursor = 'se-resize';
+    document.addEventListener('mousemove', resize);
+    document.addEventListener('mouseup', stopResize);
+    document.addEventListener('mouseleave', stopResize);
+    annotationDiv.classList.add('resizing');
+  };
+
   async function showAnnotation(rect, text) {
     const settings = await chrome.storage.sync.get({
       defaultPrompt: 'explain',
@@ -61,7 +118,13 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
     // Set default prompt
     if (!annotationDiv) {
       annotationDiv = document.createElement('div');
-      annotationDiv.className = 'modern-popout';
+      annotationDiv.className = 'modern-popout resizable';
+      
+      // Add only bottom-right resizer
+      const resizer = document.createElement('div');
+      resizer.className = 'resizer bottom-right';
+      resizer.addEventListener('mousedown', initResize);
+      annotationDiv.appendChild(resizer);
       
       const header = document.createElement('div');
       header.className = 'modern-popout-header';
@@ -255,6 +318,11 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       content.textContent = `Error: ${error.message}`;
       copyButton.style.display = 'none';
     }
+
+    // Add event listeners to resizers
+    annotationDiv.querySelectorAll('.resizer').forEach(resizer => {
+      resizer.addEventListener('mousedown', initResize);
+    });
   }
 
   // Close annotation on click outside
@@ -572,7 +640,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
   // Add this function to handle contextual actions
   async function handleContextualAction(action, originalText, originalResponse) {
     const promptMap = {
-      'simplify': `Make this explanation even simpler and clearer: "${originalResponse}"`,
+      'deeper': `Take this explanation and go deeper into the subject, explaining more context and details in a clear, engaging way. Make complex ideas simple but don't shy away from important details: "${originalResponse}"`,
       'technical': `Provide a detailed technical explanation of this topic, including specific terminology and concepts: "${originalText}"`,
       'examples': `Provide 3-4 clear, concrete real-world examples that illustrate this concept. Format each example as a separate point with a brief explanation: "${originalText}"`,
       'analogy': `Explain this concept using 2-3 clear analogies. Make each analogy relatable and explain why it fits: "${originalText}"`
@@ -660,7 +728,6 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
   // Update the showAnnotation function to add contextual buttons
   function addContextualButtons(container, text, response) {
-    // Remove existing buttons container if it exists
     const existingButtons = container.querySelector('.context-buttons');
     if (existingButtons) {
       existingButtons.remove();
@@ -670,7 +737,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
     buttonsContainer.className = 'context-buttons';
 
     const buttons = [
-      { action: 'simplify', text: '🔄 Simplify Further' },
+      { action: 'deeper', text: '🔍 Go Deeper' },
       { action: 'technical', text: '🔬 More Technical' },
       { action: 'examples', text: '💡 Show Examples' },
       { action: 'analogy', text: '🎯 Use Analogy' }
