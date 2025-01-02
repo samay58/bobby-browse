@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quick Explain Settings</title>
+  <style>
+    body {
+      font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #374151;
+    }
+    .option-group {
+      margin-bottom: 24px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 8px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quick Explain Settings</h1>
+  
+  <div class="option-group">
+    <h2>Default Prompt</h2>
+    <select id="defaultPrompt">
+      <option value="explain">Explain Simply</option>
+      <option value="eli5">Explain Like I'm 5</option>
+      <option value="counter">Counter-Argument</option>
+      <option value="key-points">Key Points</option>
+      <option value="summarize">Summarize</option>
+    </select>
+  </div>
+
+  <div class="option-group">
+    <h2>Theme</h2>
+    <div class="theme-toggle">
+      <input type="radio" id="auto" name="theme" value="auto">
+      <label for="auto">Auto (System)</label>
+      <input type="radio" id="light" name="theme" value="light">
+      <label for="light">Light</label>
+      <input type="radio" id="dark" name="theme" value="dark">
+      <label for="dark">Dark</label>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html> 

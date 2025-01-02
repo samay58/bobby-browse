@@ -1,0 +1,699 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&display=swap');
+
+.modern-popout {
+  position: fixed !important;
+  right: 2rem !important;
+  max-width: 480px !important;
+  width: 420px !important;
+  background: white !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  z-index: 2147483647 !important;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  overflow: hidden !important;
+  opacity: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 400px !important;
+  -webkit-font-smoothing: antialiased !important;
+  animation: fadeIn 0.2s ease forwards !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modern-popout.visible {
+  transform: scale(1) translate3d(0, 0, 0) !important;
+}
+
+.modern-popout-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  background: white !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  cursor: default !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.modern-popout-body {
+  padding: 16px !important;
+  color: #555 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  overflow-y: auto !important;
+  max-width: 500px !important;
+  margin: 0 auto !important;
+}
+
+.modern-popout.loading .modern-popout-body {
+  color: #666 !important;
+}
+
+.modern-popout.loading::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #f3f3f3, #e0e0e0) !important;
+  animation: loadingBar 1s infinite linear !important;
+}
+
+.modern-popout.error {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.modern-popout.error .modern-popout-body {
+  color: #dc2626 !important;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.prompt-selector {
+  min-width: 160px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.prompt-selector:hover {
+  border-color: #6366f1 !important;
+  background: white !important;
+}
+
+.prompt-selector:focus {
+  outline: none !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.copy-button {
+  position: static !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-left: auto !important;
+}
+
+.copy-button:hover {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modern-popout {
+    background: #1f2937 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .modern-popout-header {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .modern-popout-body {
+    color: #e5e5e5 !important;
+  }
+
+  .modern-popout.error {
+    background: rgba(40, 20, 20, 0.95) !important;
+    border-color: rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .prompt-selector {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  .prompt-selector:hover {
+    background: #4b5563 !important;
+    border-color: #6366f1 !important;
+  }
+
+  .copy-button {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+  }
+
+  .copy-button:hover {
+    background: #374151 !important;
+  }
+}
+
+.quick-explain-fab {
+  position: absolute !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13px !important;
+  color: #374151 !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  z-index: 2147483646 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.2s ease !important;
+}
+
+.quick-explain-fab.visible {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+.quick-explain-fab:hover {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .quick-explain-fab {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+  }
+
+  .quick-explain-fab:hover {
+    background: #374151 !important;
+  }
+}
+
+.modern-popout[data-prompt-type="key-points"] .modern-popout-body {
+  font-size: 13px !important;
+}
+
+.modern-popout[data-prompt-type="eli5"] .modern-popout-body {
+  font-size: 15px !important;
+  line-height: 1.8 !important;
+}
+
+.modern-popout[data-prompt-type="counter"] .modern-popout-body {
+  font-style: italic !important;
+}
+
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body {
+  font-weight: 400 !important;
+}
+
+.drag-handle {
+  cursor: grab !important;
+  padding: 0 8px !important;
+  color: #999 !important;
+  font-size: 16px !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Add these styles for contextual buttons */
+.context-buttons {
+  padding: 12px 16px !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  background: #f9fafb !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.context-button {
+  flex: 1 !important;
+  min-width: max-content !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.context-button:hover {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .context-buttons {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .context-button {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  .context-button:hover {
+    background: #4b5563 !important;
+  }
+}
+
+/* Add prompt label */
+.prompt-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #4b5563 !important;
+  margin-right: auto !important;
+}
+
+.quick-explain-fab svg {
+  flex-shrink: 0 !important;
+}
+
+.bobby-icon {
+  width: 14px !important;
+  height: 14px !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+}
+
+/* Response formatting */
+.bobby-response {
+  padding: 20px !important;
+  margin-bottom: 20px !important;
+  background: white !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+.bobby-header {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  margin-bottom: 16px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+}
+
+.bobby-text {
+  margin: 0 !important;
+  line-height: 1.6 !important;
+  color: #444 !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+}
+
+.bobby-list {
+  margin: 0 !important;
+  padding-left: 24px !important;
+  list-style-type: none !important;
+}
+
+.bobby-list li {
+  position: relative !important;
+  padding-left: 8px !important;
+  margin-bottom: 12px !important;
+  line-height: 1.6 !important;
+  font-size: 15px !important;
+  color: #444 !important;
+}
+
+.bobby-list li:last-child {
+  margin-bottom: 0 !important;
+}
+
+.bobby-list li:before {
+  content: "•" !important;
+  position: absolute !important;
+  left: -12px !important;
+  color: #6366f1 !important;
+}
+
+/* Specific prompt styles */
+.bobby-response.eli5 {
+  background: #fafafa !important;
+}
+
+.bobby-response.eli5 .bobby-text {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.bobby-response.counter {
+  background: #fffafa !important;
+}
+
+.bobby-response.counter .bobby-list li {
+  font-style: italic !important;
+}
+
+.bobby-response.key-points {
+  background: #f7fcf7 !important;
+}
+
+.bobby-response.key-points .bobby-list li {
+  font-weight: 500 !important;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .bobby-response {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .bobby-header {
+    color: #e5e7eb !important;
+  }
+
+  .bobby-text,
+  .bobby-list li {
+    color: #d1d5db !important;
+  }
+
+  .bobby-response.eli5 {
+    background: #1a1f2b !important;
+  }
+
+  .bobby-response.counter {
+    background: #1f1a1a !important;
+  }
+
+  .bobby-response.key-points {
+    background: #1a231a !important;
+  }
+}
+
+/* Add these new styles */
+.bobby-section {
+  margin-bottom: 24px !important;
+}
+
+.bobby-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+.bobby-list.ordered {
+  list-style-type: decimal !important;
+  padding-left: 32px !important;
+}
+
+.bobby-list.ordered li {
+  padding-left: 8px !important;
+}
+
+.bobby-list.ordered li::before {
+  display: none !important;
+}
+
+/* Specific prompt styles */
+.bobby-response.pros-cons .bobby-list.pros li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.pros-cons .bobby-list.cons li::before {
+  color: #ef4444 !important;
+}
+
+.bobby-response.next-steps {
+  background: #f8fafc !important;
+}
+
+.bobby-response.next-steps .bobby-list li {
+  font-weight: 500 !important;
+}
+
+/* Dark mode updates */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.next-steps {
+    background: #1a202c !important;
+  }
+  
+  .bobby-response.pros-cons .bobby-list.pros li::before {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.pros-cons .bobby-list.cons li::before {
+    color: #f87171 !important;
+  }
+}
+
+.modern-popout.dragging {
+  transition: none !important;
+  user-select: none !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.drag-handle {
+  cursor: grab !important;
+  padding: 0 8px !important;
+  color: #999 !important;
+  font-size: 16px !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Add styles for new prompt types */
+.bobby-response.examples .bobby-list li {
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.bobby-response.debate .bobby-list.for li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.debate .bobby-list.against li::before {
+  color: #ef4444 !important;
+}
+
+.bobby-papers {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.bobby-paper {
+  padding: 16px !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.bobby-paper-title {
+  color: #4f46e5 !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+
+.bobby-paper-title:hover {
+  text-decoration: underline !important;
+}
+
+.bobby-paper-authors {
+  color: #4b5563 !important;
+  font-size: 13px !important;
+  margin-bottom: 4px !important;
+}
+
+.bobby-paper-date {
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.bobby-paper-highlight {
+  font-size: 13px !important;
+  color: #4b5563 !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  font-style: italic !important;
+}
+
+/* Dark mode updates */
+@media (prefers-color-scheme: dark) {
+  .bobby-paper {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .bobby-paper-title {
+    color: #818cf8 !important;
+  }
+  
+  .bobby-paper-authors {
+    color: #9ca3af !important;
+  }
+  
+  .bobby-paper-date {
+    color: #6b7280 !important;
+  }
+  
+  .bobby-paper-highlight {
+    color: #9ca3af !important;
+  }
+}
+
+/* Debate mode styling */
+.bobby-response.debate .bobby-section {
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+  border-radius: 8px !important;
+}
+
+.bobby-response.debate .for-section {
+  background: rgba(34, 197, 94, 0.05) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+}
+
+.bobby-response.debate .against-section {
+  background: rgba(249, 115, 22, 0.05) !important;
+  border: 1px solid rgba(249, 115, 22, 0.1) !important;
+}
+
+.bobby-response.debate .bobby-header {
+  font-weight: 500 !important;
+  margin-bottom: 12px !important;
+}
+
+.bobby-response.debate .for-section .bobby-header {
+  color: #15803d !important;
+}
+
+.bobby-response.debate .against-section .bobby-header {
+  color: #c2410c !important;
+}
+
+.bobby-response.debate .bobby-list {
+  margin: 0 !important;
+}
+
+.bobby-response.debate .bobby-list li {
+  margin-bottom: 8px !important;
+  line-height: 1.5 !important;
+}
+
+.bobby-response.debate .bobby-list.for li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.debate .bobby-list.against li::before {
+  color: #f97316 !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.debate .for-section {
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(34, 197, 94, 0.2) !important;
+  }
+  
+  .bobby-response.debate .against-section {
+    background: rgba(249, 115, 22, 0.1) !important;
+    border-color: rgba(249, 115, 22, 0.2) !important;
+  }
+  
+  .bobby-response.debate .for-section .bobby-header {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.debate .against-section .bobby-header {
+    color: #fb923c !important;
+  }
+}
+
+/* Technical explanation styling */
+.bobby-response.technical .bobby-text {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: #1a1a1a !important;
+}
+
+.bobby-response.technical .bobby-text p {
+  margin-bottom: 12px !important;
+}
+
+/* Analogy styling */
+.bobby-response.analogies .bobby-analogies {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.bobby-response.analogies .bobby-analogy {
+  padding: 16px !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.bobby-response.analogies .bobby-analogy p {
+  margin: 0 !important;
+  line-height: 1.6 !important;
+  color: #374151 !important;
+}
+
+/* Examples styling */
+.bobby-response.examples .bobby-list li {
+  background: rgba(99, 102, 241, 0.02) !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  margin-bottom: 16px !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.technical .bobby-text {
+    color: #e5e7eb !important;
+  }
+
+  .bobby-response.analogies .bobby-analogy {
+    background: rgba(99, 102, 241, 0.1) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+  }
+
+  .bobby-response.analogies .bobby-analogy p {
+    color: #d1d5db !important;
+  }
+
+  .bobby-response.examples .bobby-list li {
+    background: rgba(99, 102, 241, 0.05) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+  }
+} 

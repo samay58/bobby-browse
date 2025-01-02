@@ -1,0 +1,58 @@
+{
+  "manifest_version": 3,
+  "name": "Bobby - Your Reading Buddy",
+  "description": "Meet Bobby, your friendly reading companion! Highlight text to get instant explanations and insights. Like Clippy, but actually helpful.",
+  "version": "1.0.0",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "storage",
+    "scripting",
+    "unlimitedStorage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "css": ["styles.css"],
+    "js": [
+      "config.js",
+      "options.js",
+      "content.js",
+      "draggable.js",
+      "history.js"
+    ],
+    "run_at": "document_start",
+    "all_frames": true
+  }],
+  "commands": {
+    "quick-explain": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Explain selected text"
+    }
+  },
+  "host_permissions": [
+    "https://api.openai.com/*"
+  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "styles.css",
+      "icon.png"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+} 
