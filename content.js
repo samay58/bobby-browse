@@ -238,36 +238,25 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
     // Calculate vertical position
     const viewportHeight = window.innerHeight;
-    const boxHeight = Math.min(400, viewportHeight - 80);
-    let top = rect.top + window.scrollY - boxHeight/2; // Center align with selection
-
-    // Keep the box within viewport bounds
-    if (top < window.scrollY + 20) {
-      top = window.scrollY + 20;
-    } else if (top + boxHeight > window.scrollY + viewportHeight - 20) {
-      top = window.scrollY + viewportHeight - boxHeight - 20;
-    }
-
+    const boxHeight = Math.min(400, viewportHeight - 40);
+    
+    // Position relative to viewport
+    annotationDiv.style.position = 'fixed';
+    let top = Math.max(20, Math.min(
+      rect.top + window.pageYOffset - rect.height,
+      viewportHeight - boxHeight - 20
+    ));
+    
     // Apply the positioning
     annotationDiv.style.top = `${top}px`;
     annotationDiv.style.maxHeight = `${boxHeight}px`;
-
+    
     // Calculate horizontal position
     const viewportWidth = window.innerWidth;
-    const spaceOnRight = viewportWidth - rect.right - 40;
-    const spaceOnLeft = rect.left - 40;
-
-    if (spaceOnRight >= 380) {
-      annotationDiv.style.left = 'auto';
-      annotationDiv.style.right = '2rem';
-    } else if (spaceOnLeft >= 380) {
-      annotationDiv.style.right = 'auto';
-      annotationDiv.style.left = '2rem';
-    } else {
-      annotationDiv.style.left = 'auto';
-      annotationDiv.style.right = '2rem';
-      annotationDiv.style.maxWidth = `${Math.max(spaceOnRight - 20, 280)}px`;
-    }
+    // Position on right side with padding
+    annotationDiv.style.left = 'auto';
+    annotationDiv.style.right = '20px';
+    annotationDiv.style.width = `${Math.min(380, viewportWidth - 40)}px`;
 
     content.textContent = "Loading explanation...";
     annotationDiv.classList.add('loading');
