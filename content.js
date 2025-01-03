@@ -772,4 +772,15 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       throw error;
     }
   }
+
+  // Inside your handleSubmit or similar function where you process chat responses
+  chrome.storage.local.get(['chatHistory'], function(result) {
+    const history = result.chatHistory || [];
+    history.push({
+        prompt: userInput,
+        response: aiResponse,
+        timestamp: new Date().toISOString()
+    });
+    chrome.storage.local.set({ chatHistory: history });
+  });
 } 

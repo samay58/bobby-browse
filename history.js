@@ -57,3 +57,21 @@ class HistoryManager {
 
 // Export for use in other files
 window.HistoryManager = new HistoryManager(); 
+
+document.addEventListener('DOMContentLoaded', function() {
+    chrome.storage.local.get(['chatHistory'], function(result) {
+        const history = result.chatHistory || [];
+        const container = document.getElementById('history-container');
+        
+        history.reverse().forEach(chat => {
+            const chatDiv = document.createElement('div');
+            chatDiv.className = 'chat-entry';
+            chatDiv.innerHTML = `
+                <div class="timestamp">${new Date(chat.timestamp).toLocaleString()}</div>
+                <div class="prompt"><strong>You:</strong> ${chat.prompt}</div>
+                <div class="response"><strong>AI:</strong> ${chat.response}</div>
+            `;
+            container.appendChild(chatDiv);
+        });
+    });
+}); 

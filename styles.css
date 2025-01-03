@@ -754,4 +754,23 @@
   .resizer.bottom-right::after {
     border-color: rgba(99, 102, 241, 0.6) !important;
   }
+}
+
+.history-button {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 8px;
+  color: inherit;
+}
+
+.history-button:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.dark .history-button:hover {
+  background: rgba(255,255,255,0.1);
 } 
