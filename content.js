@@ -25,6 +25,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
   // Use config values
   const OPENAI_API_KEY = window.BOBBY_CONFIG.OPENAI_API_KEY;
+  const EXA_API_KEY = window.BOBBY_CONFIG.EXA_API_KEY;
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Content script received message:', request);
@@ -109,6 +110,12 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       defaultPrompt: 'explain',
       theme: 'auto'
     });
+
+    // Count words in the selected text
+    const wordCount = text.trim().split(/\s+/).length;
+    // If more than 10 words, summarize. Otherwise explain
+    const initialPrompt = wordCount > 10 ? 'summarize' : 'explain';
+    settings.defaultPrompt = initialPrompt;
 
     // Apply theme
     if (settings.theme !== 'auto') {
@@ -212,7 +219,33 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       copyButton.innerHTML = '📋 Copy';
       copyButton.style.display = 'none';
       
+      // Add fact check button
+      const factCheckButton = document.createElement('button');
+      factCheckButton.className = 'fact-check-button';
+      factCheckButton.innerHTML = '🔍 Fact Check';
+      factCheckButton.onclick = async () => {
+        try {
+          content.textContent = "Checking facts...";
+          annotationDiv.classList.add('loading');
+          
+          const detector = new HallucinationDetector(OPENAI_API_KEY, EXA_API_KEY);
+          const claims = await detector.extractClaims(text);
+          
+          const verifications = await Promise.all(
+            claims.map(claim => detector.verifyClaim(claim.claim, claim.original_text))
+          );
+          
+          content.innerHTML = formatFactCheckResults(verifications);
+          annotationDiv.classList.remove('loading');
+        } catch (error) {
+          console.error('Fact check error:', error);
+          content.textContent = `Error checking facts: ${error.message}`;
+          annotationDiv.classList.remove('loading');
+        }
+      };
+      
       header.appendChild(promptSelector);
+      header.appendChild(factCheckButton);
       header.appendChild(copyButton); // Add copy button to header
       
       content = document.createElement('div');
@@ -772,4 +805,64 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
     });
     chrome.storage.local.set({ chatHistory: history });
   });
+
+  function formatFactCheckResults(results) {
+    // Helper function to get status icon and color based on confidence
+    const getStatusInfo = (assessment, confidence) => {
+      if (assessment.toLowerCase() === 'true') {
+        return {
+          icon: '✅',
+          bgClass: confidence > 75 ? 'high-confidence' : 
+                  confidence > 50 ? 'medium-confidence' : 
+                  'low-confidence',
+          textClass: confidence > 75 ? 'text-green-700' :
+                    confidence > 50 ? 'text-yellow-700' :
+                    'text-red-700'
+        };
+      } else if (assessment.toLowerCase() === 'false') {
+        return {
+          icon: '❌',
+          bgClass: 'false',
+          textClass: 'text-red-700'
+        };
+      } else {
+        return {
+          icon: '❓',
+          bgClass: 'insufficient',
+          textClass: 'text-gray-700'
+        };
+      }
+    };
+
+    return `
+      <div class="fact-check-results">
+        ${results.map(result => {
+          const { icon, bgClass, textClass } = getStatusInfo(result.assessment, result.confidence);
+          return `
+            <div class="fact-check-item ${bgClass}">
+              <div class="fact-status">
+                ${icon}
+                <span class="confidence ${textClass}">${result.confidence}% confident</span>
+              </div>
+              <div class="claim-text">${result.claim}</div>
+              <div class="summary">${result.summary}</div>
+              ${result.assessment === 'False' ? `
+                <div class="correction">
+                  <strong>Correction:</strong> ${result.fixed_text}
+                </div>
+              ` : ''}
+              <div class="sources">
+                <strong>Sources:</strong>
+                <ul class="source-list">
+                  ${result.sources.map(url => `
+                    <li><a href="${url}" target="_blank" class="source-link">${url}</a></li>
+                  `).join('')}
+                </ul>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
 } 

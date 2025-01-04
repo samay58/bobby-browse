@@ -25,6 +25,7 @@
     "js": [
       "config.js",
       "options.js",
+      "components/HallucinationDetector.js",
       "content.js",
       "draggable.js",
       "history.js"
@@ -42,7 +43,8 @@
     }
   },
   "host_permissions": [
-    "https://api.openai.com/*"
+    "https://api.openai.com/*",
+    "https://api.exa.ai/*"
   ],
   "web_accessible_resources": [{
     "resources": [

@@ -36,8 +36,8 @@
 .modern-popout-header {
   display: flex !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 16px !important;
+  gap: 8px !important;
+  padding: 12px 16px !important;
   background: white !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
   cursor: default !important;
@@ -46,17 +46,19 @@
 }
 
 .modern-popout-body {
-  padding: 16px !important;
+  padding: 0 !important;
   color: #555 !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
   overflow-y: auto !important;
   max-width: 500px !important;
-  margin: 0 auto !important;
 }
 
 .modern-popout.loading .modern-popout-body {
+  padding: 16px !important;
   color: #666 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
 }
 
 .modern-popout.loading::after {
@@ -75,6 +77,7 @@
 }
 
 .modern-popout.error .modern-popout-body {
+  padding: 16px !important;
   color: #dc2626 !important;
 }
 
@@ -84,7 +87,7 @@
 }
 
 .prompt-selector {
-  min-width: 160px !important;
+  min-width: 140px !important;
   padding: 8px 12px !important;
   border-radius: 8px !important;
   border: 1px solid #e5e7eb !important;
@@ -109,7 +112,7 @@
 
 .copy-button {
   position: static !important;
-  padding: 6px 12px !important;
+  padding: 6px 8px !important;
   border-radius: 6px !important;
   border: 1px solid #e5e7eb !important;
   background: white !important;
@@ -224,6 +227,15 @@
 
 .modern-popout[data-prompt-type="summarize"] .modern-popout-body {
   font-weight: 400 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body p {
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
 }
 
 .drag-handle {
@@ -773,4 +785,196 @@
 
 .dark .history-button:hover {
   background: rgba(255,255,255,0.1);
+}
+
+/* Fact Check Button */
+.fact-check-button {
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  background: white !important;
+  color: #374151 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  margin-left: auto !important;
+}
+
+.fact-check-button:hover {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+/* Fact Check Results */
+.fact-check-results {
+  padding: 12px !important;
+  max-height: calc(100vh - 120px) !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.fact-check-item {
+  padding: 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.fact-check-item.high-confidence {
+  background: rgb(220 252 231) !important;
+  border-color: rgb(134 239 172) !important;
+}
+
+.fact-check-item.medium-confidence {
+  background: rgb(254 249 195) !important;
+  border-color: rgb(253 224 71) !important;
+}
+
+.fact-check-item.low-confidence {
+  background: rgb(254 226 226) !important;
+  border-color: rgb(252 165 165) !important;
+}
+
+.fact-check-item.false {
+  background: rgb(254 226 226) !important;
+  border-color: rgb(252 165 165) !important;
+}
+
+.fact-check-item.insufficient {
+  background: rgb(243 244 246) !important;
+  border-color: rgb(209 213 219) !important;
+}
+
+.fact-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.confidence {
+  font-size: 12px !important;
+  color: #666 !important;
+}
+
+.claim-text {
+  font-weight: 600 !important;
+  margin: 8px 0 !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.summary {
+  margin: 8px 0 !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+  color: #444 !important;
+  font-size: 14px !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.correction {
+  background: #fff3f3 !important;
+  padding: 12px !important;
+  margin-bottom: 12px !important;
+  border-radius: 4px !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.sources {
+  font-size: 12px !important;
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+  max-width: 100% !important;
+}
+
+.source-list {
+  margin: 4px 0 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.source-link {
+  color: #4f46e5 !important;
+  text-decoration: none !important;
+  display: block !important;
+  font-size: 11px !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+  padding: 4px 0 !important;
+}
+
+.source-link:hover {
+  text-decoration: underline !important;
+}
+
+.text-wrap {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+}
+
+/* Add margin between fact-check and copy buttons */
+.copy-button {
+  margin-left: 8px !important;
+}
+
+/* Utility classes */
+.break-words {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.overflow-hidden {
+  overflow: hidden !important;
+}
+
+.truncate {
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap !important;
+}
+
+/* Text colors */
+.text-green-700 {
+  color: rgb(21 128 61) !important;
+}
+
+.text-yellow-700 {
+  color: rgb(161 98 7) !important;
+}
+
+.text-red-700 {
+  color: rgb(185 28 28) !important;
+}
+
+.text-gray-700 {
+  color: rgb(55 65 81) !important;
+}
+
+/* Add spacing between paragraphs but not at the top/bottom */
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body p + p {
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Dark mode border color */
+@media (prefers-color-scheme: dark) {
+  .modern-popout[data-prompt-type="summarize"] .modern-popout-body p + p {
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
 } 
