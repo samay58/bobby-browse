@@ -2,9 +2,61 @@
   <img src="icon.png" width="128" height="128" alt="Bobby Icon">
 </p>
 
-# Bobby - Your Smart Reading Buddy
+# Bobby - Your AI Browsing Assistant
 
-Meet Bobby, your friendly AI reading companion! Like having a witty, well-read friend who's always ready to explain things (and actually knows what they're talking about). Highlight any text to get instant explanations, insights, and curated recommendations from the smartest corners of the internet.
+## New Feature: Fact Checking 🔍
+
+Bobby now includes a powerful fact-checking feature that helps verify claims in selected text using AI and reliable sources.
+
+### How to Use Fact Checking
+
+1. Select any text on a webpage
+2. Click the Bobby extension icon or use the keyboard shortcut
+3. Click the "🔍 Fact Check" button in the popup
+4. Bobby will:
+   - Extract verifiable claims from the text
+   - Search for relevant sources using Exa API
+   - Verify each claim against the sources
+   - Provide confidence scores and corrections if needed
+
+### Fact Check Results
+
+Results are color-coded for easy understanding:
+- 🟢 Green: High confidence (>75%) verification
+- 🟡 Yellow: Medium confidence (50-75%)
+- 🔴 Red: Low confidence (<50%) or false claim
+
+Each fact check includes:
+- Confidence score
+- Original claim
+- Verification summary
+- Source links
+- Corrections (if claim is false)
+
+### Example
+
+```text
+Selected text: "The global temperature has risen by 2°C in the last decade"
+
+Fact Check Result:
+❌ False (95% confident)
+The claim is incorrect. According to NASA and NOAA data, global temperatures 
+have risen by approximately 0.18°C per decade over the past 40 years, 
+not 2°C in a single decade.
+
+Sources:
+- nasa.gov/global-temperature-data
+- noaa.gov/climate-reports
+```
+
+### Configuration
+
+To use the fact-checking feature:
+1. Add your OpenAI API key for claim analysis
+2. Add your Exa API key for source verification
+3. Configure in the extension settings
+
+The fact checker uses GPT-4 for claim extraction and verification, combined with Exa's search API for finding reliable sources.
 
 ## ✨ What Bobby Can Do
 
