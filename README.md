@@ -4,6 +4,58 @@
 
 # Bobby - Your AI Browsing Assistant
 
+## ✨ What Bobby Can Do
+
+- 🧠 **Makes Complex Things Simple**: Gets straight to the point with that "aha!" moment clarity
+- 📚 **Knows the Good Stuff**: Finds related gems from 40+ top intellectual blogs and publications
+- 🎯 **Reads the Room**: Adapts explanations to your needs (from ELI5 to "let's get technical")
+- 💡 **Wears Many Hats**: 
+  - Hosts mini-debates (with actual good points on both sides!)
+  - Bullet-points like a pro
+  - Drops real-world examples that click
+  - Suggests reading that's actually worth your time
+- 🎨 **Looks Sharp**: Clean, modern interface that's easy on the eyes (dark mode included, because we're not savages)
+- ⌨️ **Quick on the Draw**: Just hit Ctrl+Shift+X (Cmd+Shift+X for the Mac folks) and Bobby's there
+
+## 🚀 Quick Start
+
+1. Clone this repository (Bobby needs a home!)
+2. Get your API keys:
+   - OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Exa API key from [Exa.ai](https://exa.ai/docs/api)
+3. Copy `config.example.js` to `config.js` and add your keys
+4. Open Chrome and go to `chrome://extensions/`
+5. Enable "Developer mode" (top right)
+6. Click "Load unpacked" and point it to Bobby's folder
+
+## 💡 How to Use Bobby
+
+1. Find some text that makes you go "huh?"
+2. Select it, then either:
+   - Click the Bobby icon that pops up (he's friendly!)
+   - Right-click and pick "Explain with Bobby"
+   - Use the keyboard shortcut (Bobby's always ready)
+3. Pick how you want it explained
+4. Watch Bobby work his magic! ✨
+
+## 🔧 Under Bobby's Hood
+
+Bobby's built with:
+- Pure JavaScript (no framework bloat here!)
+- Chrome Extensions API (for that native feel)
+- OpenAI GPT API (the smart bits)
+- Exa API (for finding the good stuff)
+
+## 🤝 Make Bobby Smarter
+
+Got ideas to make Bobby even better? PRs welcome! 
+
+1. Fork the repo
+2. Create your feature branch
+3. Make your magic happen
+4. Submit a PR
+
+
 ## New Feature: Fact Checking 🔍
 
 Bobby now includes a powerful fact-checking feature that helps verify claims in selected text using AI and reliable sources.
@@ -57,57 +109,6 @@ To use the fact-checking feature:
 3. Configure in the extension settings
 
 The fact checker uses GPT-4 for claim extraction and verification, combined with Exa's search API for finding reliable sources.
-
-## ✨ What Bobby Can Do
-
-- 🧠 **Makes Complex Things Simple**: Gets straight to the point with that "aha!" moment clarity
-- 📚 **Knows the Good Stuff**: Finds related gems from 40+ top intellectual blogs and publications
-- 🎯 **Reads the Room**: Adapts explanations to your needs (from ELI5 to "let's get technical")
-- 💡 **Wears Many Hats**: 
-  - Hosts mini-debates (with actual good points on both sides!)
-  - Bullet-points like a pro
-  - Drops real-world examples that click
-  - Suggests reading that's actually worth your time
-- 🎨 **Looks Sharp**: Clean, modern interface that's easy on the eyes (dark mode included, because we're not savages)
-- ⌨️ **Quick on the Draw**: Just hit Ctrl+Shift+X (Cmd+Shift+X for the Mac folks) and Bobby's there
-
-## 🚀 Quick Start
-
-1. Clone this repository (Bobby needs a home!)
-2. Get your API keys:
-   - OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Exa API key from [Exa.ai](https://exa.ai/docs/api)
-3. Copy `config.example.js` to `config.js` and add your keys
-4. Open Chrome and go to `chrome://extensions/`
-5. Enable "Developer mode" (top right)
-6. Click "Load unpacked" and point it to Bobby's folder
-
-## 💡 How to Use Bobby
-
-1. Find some text that makes you go "huh?"
-2. Select it, then either:
-   - Click the Bobby icon that pops up (he's friendly!)
-   - Right-click and pick "Explain with Bobby"
-   - Use the keyboard shortcut (Bobby's always ready)
-3. Pick how you want it explained
-4. Watch Bobby work his magic! ✨
-
-## 🔧 Under Bobby's Hood
-
-Bobby's built with:
-- Pure JavaScript (no framework bloat here!)
-- Chrome Extensions API (for that native feel)
-- OpenAI GPT API (the smart bits)
-- Exa API (for finding the good stuff)
-
-## 🤝 Make Bobby Smarter
-
-Got ideas to make Bobby even better? PRs welcome! 
-
-1. Fork the repo
-2. Create your feature branch
-3. Make your magic happen
-4. Submit a PR
 
 Got big plans? Open an issue first - Bobby loves a good brainstorm!
 
