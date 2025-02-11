@@ -4,58 +4,6 @@
 
 # Bobby - Your AI Browsing Assistant
 
-## ✨ What Bobby Can Do
-
-- 🧠 **Makes Complex Things Simple**: Gets straight to the point with that "aha!" moment clarity
-- 📚 **Knows the Good Stuff**: Finds related gems from 40+ top intellectual blogs and publications
-- 🎯 **Reads the Room**: Adapts explanations to your needs (from ELI5 to "let's get technical")
-- 💡 **Wears Many Hats**: 
-  - Hosts mini-debates (with actual good points on both sides!)
-  - Bullet-points like a pro
-  - Drops real-world examples that click
-  - Suggests reading that's actually worth your time
-- 🎨 **Looks Sharp**: Clean, modern interface that's easy on the eyes (dark mode included, because we're not savages)
-- ⌨️ **Quick on the Draw**: Just hit Ctrl+Shift+X (Cmd+Shift+X for the Mac folks) and Bobby's there
-
-## 🚀 Quick Start
-
-1. Clone this repository (Bobby needs a home!)
-2. Get your API keys:
-   - OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Exa API key from [Exa.ai](https://exa.ai/docs/api)
-3. Copy `config.example.js` to `config.js` and add your keys
-4. Open Chrome and go to `chrome://extensions/`
-5. Enable "Developer mode" (top right)
-6. Click "Load unpacked" and point it to Bobby's folder
-
-## 💡 How to Use Bobby
-
-1. Find some text that makes you go "huh?"
-2. Select it, then either:
-   - Click the Bobby icon that pops up (he's friendly!)
-   - Right-click and pick "Explain with Bobby"
-   - Use the keyboard shortcut (Bobby's always ready)
-3. Pick how you want it explained
-4. Watch Bobby work his magic! ✨
-
-## 🔧 Under Bobby's Hood
-
-Bobby's built with:
-- Pure JavaScript (no framework bloat here!)
-- Chrome Extensions API (for that native feel)
-- OpenAI GPT API (the smart bits)
-- Exa API (for finding the good stuff)
-
-## 🤝 Make Bobby Smarter
-
-Got ideas to make Bobby even better? PRs welcome! 
-
-1. Fork the repo
-2. Create your feature branch
-3. Make your magic happen
-4. Submit a PR
-
-
 ## New Feature: Fact Checking 🔍
 
 Bobby now includes a powerful fact-checking feature that helps verify claims in selected text using AI and reliable sources.
@@ -110,6 +58,57 @@ To use the fact-checking feature:
 
 The fact checker uses GPT-4 for claim extraction and verification, combined with Exa's search API for finding reliable sources.
 
+## ✨ What Bobby Can Do
+
+- 🧠 **Makes Complex Things Simple**: Gets straight to the point with that "aha!" moment clarity
+- 📚 **Knows the Good Stuff**: Finds related gems from 40+ top intellectual blogs and publications
+- 🎯 **Reads the Room**: Adapts explanations to your needs (from ELI5 to "let's get technical")
+- 💡 **Wears Many Hats**: 
+  - Hosts mini-debates (with actual good points on both sides!)
+  - Bullet-points like a pro
+  - Drops real-world examples that click
+  - Suggests reading that's actually worth your time
+- 🎨 **Looks Sharp**: Clean, modern interface that's easy on the eyes (dark mode included, because we're not savages)
+- ⌨️ **Quick on the Draw**: Just hit Ctrl+Shift+X (Cmd+Shift+X for the Mac folks) and Bobby's there
+
+## 🚀 Quick Start
+
+1. Clone this repository (Bobby needs a home!)
+2. Get your API keys:
+   - OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
+   - Exa API key from [Exa.ai](https://exa.ai/docs/api)
+3. Copy `config.example.js` to `config.js` and add your keys
+4. Open Chrome and go to `chrome://extensions/`
+5. Enable "Developer mode" (top right)
+6. Click "Load unpacked" and point it to Bobby's folder
+
+## 💡 How to Use Bobby
+
+1. Find some text that makes you go "huh?"
+2. Select it, then either:
+   - Click the Bobby icon that pops up (he's friendly!)
+   - Right-click and pick "Explain with Bobby"
+   - Use the keyboard shortcut (Bobby's always ready)
+3. Pick how you want it explained
+4. Watch Bobby work his magic! ✨
+
+## 🔧 Under Bobby's Hood
+
+Bobby's built with:
+- Pure JavaScript (no framework bloat here!)
+- Chrome Extensions API (for that native feel)
+- OpenAI GPT API (the smart bits)
+- Exa API (for finding the good stuff)
+
+## 🤝 Make Bobby Smarter
+
+Got ideas to make Bobby even better? PRs welcome! 
+
+1. Fork the repo
+2. Create your feature branch
+3. Make your magic happen
+4. Submit a PR
+
 Got big plans? Open an issue first - Bobby loves a good brainstorm!
 
 ## 📜 License
@@ -133,3 +132,40 @@ Never commit your `config.js` with real API keys! Always use `config.example.js`
 1. Click the green "Code" button above and download ZIP
 2. Extract the ZIP file
 3. Follow the Quick Start instructions above to set up your API keys and load the extension 
+
+# Recent Updates (2024-03-XX)
+
+## 1. Follow-Up Question Improvements
+- Added Perplexity Sonar API integration for real-time information in follow-up answers
+- Implemented multi-level back navigation for follow-up questions
+- Added state management to preserve context between follow-up questions
+- Fixed issues with sequential back button clicks
+
+## 2. API Integration Updates
+- Added secure storage for Perplexity API key
+- Moved API calls to background script to avoid CORS issues
+- Improved error handling for API responses
+- Added API key validation and format checking
+
+## 3. UI/UX Improvements
+- Fixed emoji rendering in context buttons
+- Added better error messages for API failures
+- Improved state management when closing popup
+- Enhanced event handler reattachment for restored views
+
+## 4. Technical Improvements
+- Added extension context invalidation handling
+- Improved script loading order in manifest
+- Added recovery mechanisms for extension context errors
+- Enhanced error logging for debugging
+
+## Configuration
+To use the extension, you'll need to set up the following API keys in `config.js`:
+
+```javascript
+window.BOBBY_CONFIG = {
+  OPENAI_API_KEY: 'your-openai-api-key',
+  EXA_API_KEY: 'your-exa-api-key',
+  PPLX_API_KEY: 'your-perplexity-api-key'
+};
+```

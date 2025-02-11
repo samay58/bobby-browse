@@ -11,27 +11,27 @@
     "activeTab",
     "storage",
     "scripting",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "background"
   ],
   "action": {
     "default_popup": "popup.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [{
     "matches": ["<all_urls>"],
     "css": ["styles.css"],
     "js": [
       "config.js",
-      "options.js",
-      "components/HallucinationDetector.js",
-      "content.js",
       "draggable.js",
-      "history.js"
+      "history.js",
+      "components/HallucinationDetector.js",
+      "content.js"
     ],
-    "run_at": "document_start",
-    "all_frames": true
+    "run_at": "document_idle"
   }],
   "commands": {
     "quick-explain": {
@@ -44,7 +44,8 @@
   },
   "host_permissions": [
     "https://api.openai.com/*",
-    "https://api.exa.ai/*"
+    "https://api.exa.ai/*",
+    "https://api.perplexity.ai/*"
   ],
   "web_accessible_resources": [{
     "resources": [

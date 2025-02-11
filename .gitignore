@@ -1,25 +1,20 @@
-# API keys and secrets
+# API Keys and Configuration
 config.js
 .env
-*.pem
 
-# Dependencies
-node_modules/
-
-# Logs
-*.log
-
-# IDE specific files
-.idea/
+# IDE/Editor files
 .vscode/
+.idea/
 *.swp
 *.swo
 
-# OS generated files
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db 
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/ 
