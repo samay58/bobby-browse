@@ -2,5 +2,4 @@
 window.BOBBY_CONFIG = {
   OPENAI_API_KEY: 'your-openai-api-key-here',
   EXA_API_KEY: 'your-exa-api-key-here',
-  PPLX_API_KEY: 'your-perplexity-api-key-here'
 }; 

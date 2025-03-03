@@ -113,4 +113,52 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     asyncResponse();
     return true;
   }
+
+  if (request.action === "exaAnswer") {
+    const asyncResponse = async () => {
+      try {
+        console.log('Making Exa Answer API request:', {
+          query: request.prompt,
+          hasKey: !!request.exaKey
+        });
+
+        const response = await fetch('https://api.exa.ai/answer', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${request.exaKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: request.prompt,
+            model: "exa-pro",
+            text: true
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Exa Answer API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorBody: errorText
+          });
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.answer) {
+          throw new Error('Invalid response format from Exa API');
+        }
+
+        sendResponse({ success: true, data });
+      } catch (error) {
+        console.error('Exa Answer API Error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    };
+
+    asyncResponse();
+    return true;
+  }
 }); 
