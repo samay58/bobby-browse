@@ -1073,22 +1073,11 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             Please provide a detailed answer to the follow-up question, using the context provided and real-time information if needed.
           `;
 
-          const messages = [
-            {
-              role: "system",
-              content: "Be precise and concise."
-            },
-            {
-              role: "user",
-              content: combinedPrompt
-            }
-          ];
-
           const response = await new Promise((resolve, reject) => {
             chrome.runtime.sendMessage({
-              action: "perplexityQuery",
-              messages: messages,
-              pplxKey: PPLX_API_KEY
+              action: "exaAnswer",
+              prompt: combinedPrompt,
+              exaKey: EXA_API_KEY
             }, response => {
               if (chrome.runtime.lastError) {
                 reject(new Error(chrome.runtime.lastError.message));
@@ -1102,13 +1091,57 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             });
           });
 
-          const answer = response.choices[0].message.content;
+          // Add error checking for response format
+          if (!response || !response.answer) {
+            throw new Error('Invalid response format from Exa API');
+          }
 
-          // Keep popup visible while showing answer
-          popoutDiv.style.display = 'flex';
-          popoutDiv.style.opacity = '1';
-          popoutDiv.style.visibility = 'visible';
-          
+          const answer = response.answer
+            // Remove [1], [2], etc.
+            .replace(/\[\d+\]/g, '')
+            // Remove (Source: ...) patterns
+            .replace(/\(Source:.*?\)/g, '')
+            // Remove any trailing citations list if present
+            .split(/Sources:|References:/i)[0]
+            // Clean up any double spaces or newlines
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          const citations = response.citations || [];
+
+          // Format citations in a more elegant way
+          let citationsHtml = '';
+          if (citations.length > 0) {
+            citationsHtml = `
+              <div class="citations-block">
+                <div class="citations-title">Sources</div>
+                <ul class="citations-list">
+                  ${citations.map((c, index) => `
+                    <li class="citation-item">
+                      <span class="citation-number">[${index + 1}]</span>
+                      <a href="${c.url}" 
+                         target="_blank" 
+                         rel="noopener noreferrer" 
+                         class="citation-link"
+                         title="${c.text || ''}"
+                      >
+                        ${c.title || c.url}
+                      </a>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            `;
+          }
+
+          // Add to history with properly formatted content
+          await window.HistoryManager.addToHistory(
+            question,
+            `${answer}${citationsHtml}`,  // Changed from formattedAnswer
+            'follow-up'
+          );
+
+          // Update the formatted content template
           const formattedContent = `
             <div class="followup-container">
               <div class="followup-header">
@@ -1120,7 +1153,10 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                   <strong>Your question:</strong> ${question}
                 </div>
                 <div class="followup-answer">
-                  ${answer}
+                  <div class="followup-answer-content">
+                    ${answer}
+                    ${citationsHtml}
+                  </div>
                 </div>
               </div>
               <div class="followup-actions">
@@ -1170,13 +1206,6 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             e.stopPropagation();
             showFollowUpInput(originalText, originalResponse);
           };
-
-          // Add to history
-          await window.HistoryManager.addToHistory(
-            question,
-            answer,
-            'follow-up'
-          );
         } catch (error) {
           console.error('Follow-up error:', error);
           contentDiv.innerHTML = `

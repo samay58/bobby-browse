@@ -44,8 +44,7 @@
   },
   "host_permissions": [
     "https://api.openai.com/*",
-    "https://api.exa.ai/*",
-    "https://api.perplexity.ai/*"
+    "https://api.exa.ai/*"
   ],
   "web_accessible_resources": [{
     "resources": [
