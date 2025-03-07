@@ -262,7 +262,111 @@ async function showAnnotation(rect, text) {
     // Initialize draggable functionality
     window.initDraggable(annotationDiv, header);
     
-    // Add prompt
+    // Add prompt label
+    const promptLabel = document.createElement('span');
+    promptLabel.className = 'prompt-label';
+    promptLabel.textContent = 'Select Prompt:';
+    header.appendChild(promptLabel);
+    
+    // Create content div
+    content = document.createElement('div');
+    content.className = 'modern-popout-body';
+    
+    // Add all the main UI elements to mainView
+    mainView.appendChild(header);
+    mainView.appendChild(content);
+    annotationDiv.appendChild(mainView);
+    
+    // Add only bottom-right resizer
+    const resizer = document.createElement('div');
+    resizer.className = 'resizer bottom-right';
+    resizer.addEventListener('mousedown', initResize);
+    annotationDiv.appendChild(resizer);
+
+    // Create and add other UI elements (prompt selector, buttons, etc.)
+    // ... (keep existing UI creation code)
+
+    // Add to document body
+    document.body.appendChild(annotationDiv);
+
+    // Create ResizeObserver
+    const resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const content = entry.target;
+        const container = content.closest('.modern-popout');
+        if (!container) continue;
+
+        // Get content height including padding
+        const contentHeight = content.scrollHeight;
+        const header = container.querySelector('.modern-popout-header');
+        const buttons = container.querySelector('.context-buttons');
+        const headerHeight = header?.offsetHeight || 0;
+        const buttonsHeight = buttons?.offsetHeight || 0;
+
+        // Calculate total required height
+        const totalHeight = contentHeight + headerHeight + buttonsHeight + 40; // Add padding
+        
+        // Calculate available viewport height
+        const viewportHeight = window.innerHeight;
+        const maxHeight = Math.min(800, viewportHeight * 0.8);
+        const minHeight = 200;
+
+        // Set container height
+        requestAnimationFrame(() => {
+          container.style.height = `${Math.max(minHeight, Math.min(totalHeight, maxHeight))}px`;
+        });
+      }
+    });
+
+    // Observe content div for size changes
+    resizeObserver.observe(content);
+
+    // Clean up observer when popup is closed
+    const cleanup = (e) => {
+      if (annotationDiv && 
+          !annotationDiv.contains(e.target) && 
+          !e.target.closest('.drag-handle') &&
+          !window.isDragging) {
+        resizeObserver.disconnect();
+        document.removeEventListener('click', cleanup);
+        annotationDiv.remove();
+        annotationDiv = null;
+      }
+    };
+
+    document.addEventListener('click', cleanup);
+  }
+
+  // Position the popup
+  // ... (keep existing positioning code)
+
+  // Load content
+  content.textContent = "Loading explanation...";
+  annotationDiv.classList.add('loading');
+
+  try {
+    // ... (keep existing API call and content loading code)
+  } catch (error) {
+    console.error('API Error:', error);
+    annotationDiv.classList.remove('loading');
+    annotationDiv.classList.add('error');
+    content.textContent = `Error: ${error.message}`;
+    copyButton.style.display = 'none';
+  }
+}
+
+// Remove the duplicate click event listener at the bottom
+// (since we now handle cleanup in the showAnnotation function)
+```
+
+The key changes are:
+1. Moved ResizeObserver creation into the initial popup creation
+2. Added cleanup function that removes both the observer and event listener
+3. Fixed the height calculation to include padding
+4. Removed duplicate event listeners
+5. Added requestAnimationFrame for smoother height updates
+
+This should fix the popup not showing up and handle resizing properly. Let me know if you still have issues!
 
 ---
 

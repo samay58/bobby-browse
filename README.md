@@ -1,135 +1,95 @@
-<p align="center">
-  <img src="icon.png" width="128" height="128" alt="Bobby Icon">
-</p>
+# Bobby - Your Reading Buddy 🤖
 
-# Bobby - Your AI Browsing Assistant
+A browser extension that makes reading and understanding content easier. Like Clippy, but actually helpful! Bobby sits quietly in your browser until you need help understanding something - just highlight text to get instant explanations and insights.
 
-## ✨ What Bobby Can Do
+## Features 🌟
 
-- 🧠 **Makes Complex Things Simple**: Gets straight to the point with that "aha!" moment clarity
-- 📚 **Knows the Good Stuff**: Finds related gems from 40+ top intellectual blogs and publications
-- 🎯 **Reads the Room**: Adapts explanations to your needs (from ELI5 to "let's get technical")
-- 💡 **Wears Many Hats**: 
-  - Hosts mini-debates (with actual good points on both sides!)
-  - Bullet-points like a pro
-  - Drops real-world examples that click
-  - Suggests reading that's actually worth your time
-- 🎨 **Looks Sharp**: Clean, modern interface that's easy on the eyes (dark mode included, because we're not savages)
-- ⌨️ **Quick on the Draw**: Just hit Ctrl+Shift+X (Cmd+Shift+X for the Mac folks) and Bobby's there
+- **Quick Explanations**: Highlight any text to get instant, AI-powered explanations
+- **Multiple Explanation Modes**:
+  - Simple Explanation
+  - ELI5 (Explain Like I'm 5)
+  - Key Points
+  - Real-World Examples
+  - Pros & Cons
+  - Next Steps
+  - Related Reading
+  - Summarize
+- **Fact Checking**: Verify claims with reliable sources
+- **Follow-up Questions**: Ask questions about the explanations
+- **Dark Mode Support**: Automatic theme switching based on system preferences
+- **Draggable & Resizable**: Position the explanation window wherever you want
+- **History**: Keep track of your past explanations
 
-## 🚀 Quick Start
+## Installation 🔧
 
-1. Clone this repository (Bobby needs a home!)
-2. Get your API keys:
-   - OpenAI API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Exa API key from [Exa.ai](https://exa.ai/docs/api)
-3. Copy `config.example.js` to `config.js` and add your keys
-4. Open Chrome and go to `chrome://extensions/`
-5. Enable "Developer mode" (top right)
-6. Click "Load unpacked" and point it to Bobby's folder
-
-## 💡 How to Use Bobby
-
-1. Find some text that makes you go "huh?"
-2. Select it, then either:
-   - Click the Bobby icon that pops up (he's friendly!)
-   - Right-click and pick "Explain with Bobby"
-   - Use the keyboard shortcut (Bobby's always ready)
-3. Pick how you want it explained
-4. Watch Bobby work his magic! ✨
-
-## 🔧 Under Bobby's Hood
-
-Bobby's built with:
-- Pure JavaScript (no framework bloat here!)
-- Chrome Extensions API (for that native feel)
-- OpenAI GPT API (the smart bits)
-- Exa API (for finding the good stuff)
-
-## 🤝 Make Bobby Smarter
-
-Got ideas to make Bobby even better? PRs welcome! 
-
-1. Fork the repo
-2. Create your feature branch
-3. Make your magic happen
-4. Submit a PR
-
-
-## New Feature: Fact Checking 🔍
-
-Bobby now includes a powerful fact-checking feature that helps verify claims in selected text using AI and reliable sources.
-
-### How to Use Fact Checking
-
-1. Select any text on a webpage
-2. Click the Bobby extension icon or use the keyboard shortcut
-3. Click the "🔍 Fact Check" button in the popup
-4. Bobby will:
-   - Extract verifiable claims from the text
-   - Search for relevant sources using Exa API
-   - Verify each claim against the sources
-   - Provide confidence scores and corrections if needed
-
-### Fact Check Results
-
-Results are color-coded for easy understanding:
-- 🟢 Green: High confidence (>75%) verification
-- 🟡 Yellow: Medium confidence (50-75%)
-- 🔴 Red: Low confidence (<50%) or false claim
-
-Each fact check includes:
-- Confidence score
-- Original claim
-- Verification summary
-- Source links
-- Corrections (if claim is false)
-
-### Example
-
-```text
-Selected text: "The global temperature has risen by 2°C in the last decade"
-
-Fact Check Result:
-❌ False (95% confident)
-The claim is incorrect. According to NASA and NOAA data, global temperatures 
-have risen by approximately 0.18°C per decade over the past 40 years, 
-not 2°C in a single decade.
-
-Sources:
-- nasa.gov/global-temperature-data
-- noaa.gov/climate-reports
+1. Clone this repository:
+```bash
+git clone https://github.com/yourusername/ai-reader-browser-extension.git
 ```
 
-### Configuration
+2. Create a `config.js` file in the root directory with your API keys:
+```javascript
+window.BOBBY_CONFIG = {
+  OPENAI_API_KEY: 'your-openai-api-key',
+  EXA_API_KEY: 'your-exa-api-key',
+  PPLX_API_KEY: 'your-perplexity-api-key'
+};
+```
 
-To use the fact-checking feature:
-1. Add your OpenAI API key for claim analysis
-2. Add your Exa API key for source verification
-3. Configure in the extension settings
+3. Load the extension in Chrome:
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the extension directory
 
-The fact checker uses GPT-4 for claim extraction and verification, combined with Exa's search API for finding reliable sources.
+## Usage 💡
 
-Got big plans? Open an issue first - Bobby loves a good brainstorm!
+1. Highlight any text on a webpage
+2. Click the "Explain" button that appears
+3. Choose your preferred explanation mode
+4. Read the AI-generated explanation
+5. Use follow-up questions or fact-checking as needed
 
-## 📜 License
+## Tech Stack 🛠️
 
-MIT - Go wild! Just keep Bobby friendly and helpful. 
+- Vanilla JavaScript
+- CSS3 with modern features
+- OpenAI GPT API
+- Exa API for fact-checking and research
+- Perplexity API for enhanced responses
 
-## 🙏 Credits
+## Security 🔒
 
-Bobby stands on the shoulders of giants - check out the amazing blogs and publications he learns from in `background.js`. These are some of the web's best thinkers and writers!
+- API keys are stored securely and never exposed
+- All API requests are made through secure channels
+- No user data is collected or stored externally
+
+## Contributing 🤝
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License 📄
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments 👏
+
+- OpenAI for their powerful GPT API
+- Exa for their research and fact-checking capabilities
+- Perplexity for enhanced response generation
+
+## Privacy Policy 🔐
+
+Bobby respects your privacy:
+- No data collection beyond what's necessary for functionality
+- No tracking or analytics
+- All processing happens locally where possible
+- API calls are made only when explicitly requested
 
 ---
 
-*Remember: Bobby's here to help, not to judge. Unless you're using Comic Sans. Then he might judge a little.* 😉 
-
-## 🔒 Security Note
-
-Never commit your `config.js` with real API keys! Always use `config.example.js` as a template.
-
-## 📦 Installation from GitHub
-
-1. Click the green "Code" button above and download ZIP
-2. Extract the ZIP file
-3. Follow the Quick Start instructions above to set up your API keys and load the extension 
+Made with ❤️ by [Your Name]

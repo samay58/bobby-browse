@@ -1031,7 +1031,7 @@ Key changes:
 6. Added visibility and pointer-events reset
 7. Fixed dark mode background for fact check view
 
-This should keep all elements visible and interactive during
+This should keep all elements visible and interactive during and after resizing.
 
 ---
 
