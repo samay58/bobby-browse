@@ -4304,7 +4304,122 @@ function showFabButton(rect, text) {
     
     // Add feather SVG icon
     const featherSvg = `
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l6.74-6.76zM16 8L7 17" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+    
+    fabButton.innerHTML = featherSvg;
+    
+    // Use the original click handler that worked
+    fabButton.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Use the original showAnnotation function
+      showAnnotation(rect, text);
+      hideFabButton();
+    };
+
+    // Position the button
+    const buttonWidth = 36;
+    const buttonHeight = 36;
+    const spacing = 8;
+    
+    let left = rect.right + window.scrollX + spacing;
+    let top = rect.top + window.scrollY + (rect.height / 2) - (buttonHeight / 2);
+
+    // Adjust if would go off screen
+    if (left + buttonWidth > window.innerWidth - spacing) {
+      left = rect.left + window.scrollX - buttonWidth - spacing;
+      if (left < spacing) {
+        left = rect.left + window.scrollX;
+        top = rect.bottom + window.scrollY + spacing;
+      }
+    }
+
+    // Ensure button stays within vertical bounds
+    if (top < window.scrollY + spacing) {
+      top = window.scrollY + spacing;
+    } else if (top + buttonHeight > window.scrollY + window.innerHeight - spacing) {
+      top = window.scrollY + window.innerHeight - buttonHeight - spacing;
+    }
+
+    // Apply position and add to DOM
+    fabButton.style.top = `${top}px`;
+    fabButton.style.left = `${left}px`;
+    document.body.appendChild(fabButton);
+    
+    // Show with animation
+    requestAnimationFrame(() => {
+      fabButton.classList.add('visible');
+    });
+
+  } catch (error) {
+    console.error('Error showing FAB button:', error);
+  }
+}
+
+// Keep the original styles but update for the feather icon
+const style = document.createElement('style');
+style.textContent = `
+  .quick-explain-fab {
+    position: fixed;
+    z-index: 2147483647;
+    padding: 8px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .quick-explain-fab svg {
+    width: 20px;
+    height: 20px;
+    color: #6366f1;
+  }
+
+  .quick-explain-fab:hover {
+    background: white;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1) !important;
+  }
+
+  .quick-explain-fab.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .quick-explain-fab {
+      background: rgba(31, 41, 55, 0.95);
+    }
+    .quick-explain-fab svg {
+      color: #818cf8;
+    }
+    .quick-explain-fab:hover {
+      background: rgb(31, 41, 55);
+    }
+  }
+`;
+```
+
+Key changes:
+1. Reverted back to the original showAnnotation call
+2. Kept only the feather icon changes
+3. Removed all the experimental code
+4. Kept the original functionality intact
+5. Maintained the styling for the feather icon
+
+This should restore the original working popup while keeping the new feather icon design. The popup should now appear with all its original functionality when clicking the feather icon.
 
 ---
 
