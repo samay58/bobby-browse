@@ -22,9 +22,11 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       // Tell background script we're ready
       chrome.runtime.sendMessage({ action: "content_script_ready" });
 
+      // Initialize global variables
       let annotationDiv = null;
       let fabButton = null;
-
+      let copyButton = null;
+      
       // Use config values after they're loaded
       console.log('Config values:', {
         hasOpenAI: !!window.BOBBY_CONFIG?.OPENAI_API_KEY,
@@ -62,6 +64,8 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         e.preventDefault();
         e.stopPropagation();
         
+        if (!annotationDiv) return; // Guard against null reference
+        
         let isResizing = true;
         const startX = e.clientX;
         const startY = e.clientY;
@@ -69,27 +73,63 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         const startHeight = annotationDiv.offsetHeight;
         
         const resize = (e) => {
-          if (!isResizing || !annotationDiv) return;
+          if (!isResizing || !annotationDiv || !document.body.contains(annotationDiv)) {
+            isResizing = false;
+            return;
+          }
           
+          // Use requestAnimationFrame to optimize performance
           requestAnimationFrame(() => {
             // Calculate deltas
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
             
-            // Set new dimensions
+            // Set new dimensions with min/max constraints
+            // Enforce both width and height changes together
             const newWidth = Math.min(800, Math.max(300, startWidth + deltaX));
             const newHeight = Math.min(800, Math.max(200, startHeight + deltaY));
             
-            // Apply dimensions
+            // Save current dimensions before resizing to check if they changed
+            const oldWidth = annotationDiv.offsetWidth;
+            const oldHeight = annotationDiv.offsetHeight;
+            
+            // Apply dimensions - directly modify both width and height
             annotationDiv.style.width = `${newWidth}px`;
             annotationDiv.style.height = `${newHeight}px`;
             
-            // Adjust content height
+            // Force reflow to ensure the changes are applied
+            void annotationDiv.offsetWidth;
+            
+            // Ensure the popup stays visible
+            annotationDiv.style.display = 'flex';
+            annotationDiv.style.opacity = '1';
+            
+            // Layout adjustments for child elements
+            const mainView = annotationDiv.querySelector('.main-view');
+            if (mainView) {
+              mainView.style.width = '100%';
+              mainView.style.height = '100%';
+            }
+            
+            // Adjust content body height
             const header = annotationDiv.querySelector('.modern-popout-header');
             const content = annotationDiv.querySelector('.modern-popout-body');
             if (content && header) {
-              content.style.height = `${newHeight - header.offsetHeight - 32}px`;
+              // Calculate available height for content
+              const availableHeight = newHeight - header.offsetHeight - 32;
+              content.style.height = `${availableHeight}px`;
+              content.style.overflow = 'auto';
+              
+              // Also adjust follow-up answer height if present
+              const followupAnswer = content.querySelector('.followup-answer');
+              if (followupAnswer) {
+                followupAnswer.style.maxHeight = `${availableHeight - 100}px`;
+                followupAnswer.style.overflowY = 'auto';
+              }
             }
+            
+            // Log resize dimensions for debugging
+            console.log(`Resizing: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
           });
         };
 
@@ -99,11 +139,34 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           document.removeEventListener('mousemove', resize);
           document.removeEventListener('mouseup', stopResize);
           document.removeEventListener('mouseleave', stopResize);
-          if (annotationDiv) {
+          
+          if (annotationDiv && document.body.contains(annotationDiv)) {
             annotationDiv.classList.remove('resizing');
-            // Ensure popup stays visible
+            // Ensure popup stays visible and fully opaque
             annotationDiv.style.display = 'flex';
             annotationDiv.style.opacity = '1';
+            
+            // Adjust all child elements to fit the new size
+            const mainView = annotationDiv.querySelector('.main-view');
+            if (mainView) {
+              mainView.style.width = '100%';
+              mainView.style.height = '100%';
+            }
+            
+            // Adjust content height again to ensure it's correct
+            const header = annotationDiv.querySelector('.modern-popout-header');
+            const content = annotationDiv.querySelector('.modern-popout-body');
+            if (content && header) {
+              content.style.height = `${annotationDiv.offsetHeight - header.offsetHeight - 32}px`;
+            }
+            
+            // Guarantee visibility after a brief delay (to handle any race conditions)
+            setTimeout(() => {
+              if (annotationDiv && document.body.contains(annotationDiv)) {
+                annotationDiv.style.display = 'flex';
+                annotationDiv.style.opacity = '1';
+              }
+            }, 50);
           }
         };
 
@@ -141,6 +204,12 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           annotationDiv?.classList.toggle('dark', settings.theme === 'dark');
         }
 
+        // Declare promptSelector at the function level so it's accessible throughout
+        let promptSelector;
+        let selectedDisplay;
+        let dropdownArrow;
+        let options;
+
         // Set default prompt
         if (!annotationDiv) {
           annotationDiv = document.createElement('div');
@@ -177,23 +246,86 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           resizer.addEventListener('mousedown', initResize);
           annotationDiv.appendChild(resizer);
           
-          // Create prompt selector
-          const promptSelector = document.createElement('select');
-          promptSelector.className = 'prompt-selector';
-          promptSelector.innerHTML = `
-            <option value="explain">Explain Simply</option>
-            <option value="eli5">Explain Like I'm 5</option>
-            <option value="key-points">Key Points</option>
-            <option value="examples">Real Examples</option>
-            <option value="pros-cons">Pros & Cons</option>
-            <option value="next-steps">Next Steps</option>
-            <option value="related">Related Reading</option>
-            <option value="summarize">Summarize</option>
-          `;
+          // Create a custom dropdown instead of using native select
+          promptSelector = document.createElement('div');
+          promptSelector.className = 'custom-prompt-selector';
+          promptSelector.setAttribute('tabindex', '0'); // Make it focusable
           
-          // Add change event listener for prompt selector
-          promptSelector.addEventListener('change', async () => {
-            const selectedPrompt = promptSelector.value;
+          // Create the selected value display
+          selectedDisplay = document.createElement('div');
+          selectedDisplay.className = 'selected-prompt';
+          selectedDisplay.textContent = 'Explain Simply'; // Default value
+          promptSelector.appendChild(selectedDisplay);
+          
+          // Create dropdown arrow icon
+          dropdownArrow = document.createElement('span');
+          dropdownArrow.className = 'dropdown-arrow';
+          dropdownArrow.innerHTML = '▼';
+          selectedDisplay.appendChild(dropdownArrow);
+          
+          // Create the dropdown options container
+          const optionsContainer = document.createElement('div');
+          optionsContainer.className = 'prompt-options';
+          promptSelector.appendChild(optionsContainer);
+          
+          // Define the options
+          options = [
+            {value: 'explain', text: 'Explain Simply'},
+            {value: 'eli5', text: 'Explain Like I\'m 5'},
+            {value: 'key-points', text: 'Key Points'},
+            {value: 'examples', text: 'Real Examples'},
+            {value: 'pros-cons', text: 'Pros & Cons'},
+            {value: 'next-steps', text: 'Next Steps'},
+            {value: 'related', text: 'Related Reading'},
+            {value: 'summarize', text: 'Summarize'}
+          ];
+          
+          // Add options to the dropdown
+          options.forEach(option => {
+            const optionElement = document.createElement('div');
+            optionElement.className = 'prompt-option';
+            optionElement.dataset.value = option.value;
+            optionElement.textContent = option.text;
+            
+            // Add click handler for this option
+            optionElement.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // Update selected display
+              selectedDisplay.textContent = option.text;
+              selectedDisplay.appendChild(dropdownArrow); // Re-add the arrow
+              // Hide dropdown
+              optionsContainer.style.display = 'none';
+              // Set as the selected value
+              promptSelector.dataset.value = option.value;
+              
+              // Trigger the change
+              handlePromptChange(option.value);
+            });
+            
+            optionsContainer.appendChild(optionElement);
+          });
+          
+          // Toggle dropdown on click
+          selectedDisplay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log('Prompt selector clicked');
+            // Toggle dropdown visibility
+            if (optionsContainer.style.display === 'block') {
+              optionsContainer.style.display = 'none';
+            } else {
+              optionsContainer.style.display = 'block';
+            }
+          });
+          
+          // Hide dropdown when clicking elsewhere
+          document.addEventListener('click', () => {
+            optionsContainer.style.display = 'none';
+          });
+          
+          // Handle prompt change - extract the logic from the change handler
+          const handlePromptChange = async (selectedPrompt) => {
+            console.log('Prompt changed to:', selectedPrompt);
+            
             annotationDiv.dataset.promptType = selectedPrompt;
             content.textContent = "Loading explanation...";
             annotationDiv.classList.add('loading');
@@ -201,12 +333,17 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             
             try {
               const promptText = promptTypes[selectedPrompt];
+              console.log('Prompt selected:', selectedPrompt, 'Prompt text:', promptText);
               
               const response = await sendToOpenAI(text);
               const formattedContent = await formatContent(selectedPrompt, response.choices[0].message.content, text);
               content.innerHTML = formattedContent;
               copyButton.style.display = 'block';
               annotationDiv.classList.remove('loading');
+              
+              // Setup expand/collapse functionality for long content
+              setupCollapsibleContent();
+              debugCollapsibleContent();
 
               // Add contextual buttons
               addContextualButtons(annotationDiv, text, formattedContent);
@@ -223,7 +360,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
               annotationDiv.classList.add('error');
               content.textContent = `Error: ${error.message}`;
             }
-          });
+          };
           
           // Create copy button
           copyButton = document.createElement('button');
@@ -243,6 +380,22 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
               if (!factCheckView) {
                 factCheckView = createFactCheckView();
               }
+
+              // Show fact check view and hide main view
+              factCheckView.style.display = 'flex';
+              const mainView = annotationDiv.querySelector('.main-view');
+              if (mainView) {
+                // Completely hide the main view
+                mainView.style.display = 'none';
+                mainView.style.visibility = 'hidden'; // Ensure it's fully hidden
+              }
+
+              // Remove any Show More buttons that might be in the main view or fact check view
+              const expandButtons = annotationDiv.querySelectorAll('.expand-collapse-btn');
+              expandButtons.forEach(button => {
+                button.style.display = 'none'; // Hide first
+                setTimeout(() => button.remove(), 10); // Then remove for total cleanup
+              });
 
               // Get the fact check content div
               const factCheckContent = factCheckView.querySelector('.fact-check-content');
@@ -338,13 +491,59 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             }, 2000);
           });
           
-          promptSelector.value = settings.defaultPrompt;
+          // Update the initial prompt display based on the default
+          const initialPromptDisplay = options.find(opt => opt.value === settings.defaultPrompt)?.text || 'Explain Simply';
+          selectedDisplay.textContent = initialPromptDisplay;
+          selectedDisplay.appendChild(dropdownArrow); // Re-add the arrow since textContent replaces everything
+          promptSelector.dataset.value = settings.defaultPrompt;
+          console.log('Initial prompt selector value set to:', promptSelector.dataset.value);
+
+          // Force a style refresh to ensure proper rendering
+          void promptSelector.offsetHeight;
 
           // Add to document body
           document.body.appendChild(annotationDiv);
         } else {
           copyButton = annotationDiv.querySelector('.copy-button');
           content = annotationDiv.querySelector('.modern-popout-body');
+          
+          // Find the existing prompt selector - with a more robust approach
+          promptSelector = annotationDiv.querySelector('.custom-prompt-selector');
+          
+          // If for some reason it doesn't exist, create it
+          if (!promptSelector) {
+            console.log('Creating new prompt selector as it was not found');
+            // We need to recreate the prompt selector
+            const header = annotationDiv.querySelector('.modern-popout-header');
+            if (header) {
+              // Create a custom dropdown 
+              promptSelector = document.createElement('div');
+              promptSelector.className = 'custom-prompt-selector';
+              promptSelector.setAttribute('tabindex', '0');
+              
+              // Create selected value display
+              selectedDisplay = document.createElement('div');
+              selectedDisplay.className = 'selected-prompt';
+              selectedDisplay.textContent = 'Explain Simply';
+              promptSelector.appendChild(selectedDisplay);
+              
+              // Create dropdown arrow
+              dropdownArrow = document.createElement('span');
+              dropdownArrow.className = 'dropdown-arrow';
+              dropdownArrow.innerHTML = '▼';
+              selectedDisplay.appendChild(dropdownArrow);
+              
+              // Add it to the header (at the beginning)
+              if (header.firstChild) {
+                header.insertBefore(promptSelector, header.firstChild);
+              } else {
+                header.appendChild(promptSelector);
+              }
+              
+              // Set the value
+              promptSelector.dataset.value = settings.defaultPrompt;
+            }
+          }
         }
 
         // Set initial position style
@@ -447,7 +646,16 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
         try {
           console.log('Sending request to OpenAI...');
-          const selectedPrompt = annotationDiv.querySelector('.prompt-selector').value;
+          // Use a safer way to get the selected prompt value
+          let selectedPrompt = settings.defaultPrompt; // Default fallback
+          
+          if (promptSelector) {
+            selectedPrompt = promptSelector.dataset.value || settings.defaultPrompt;
+            console.log('Using prompt value from selector:', selectedPrompt);
+          } else {
+            console.log('Using default prompt value:', selectedPrompt);
+          }
+          
           const promptText = promptTypes[selectedPrompt];
 
           const response = await sendToOpenAI(text);
@@ -472,11 +680,6 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           content.textContent = `Error: ${error.message}`;
           copyButton.style.display = 'none';
         }
-
-        // Add event listeners to resizers
-        annotationDiv.querySelectorAll('.resizer').forEach(resizer => {
-          resizer.addEventListener('mousedown', initResize);
-        });
       }
 
       // Close annotation on click outside
@@ -497,10 +700,20 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       let currentSelectionRect = null;
       let currentSelectedText = null;
       let isUpdatingPosition = false;
+      // Add a retry counter to prevent infinite loops
+      let fabButtonRetryCount = 0;
+      const MAX_FAB_RETRIES = 2;
 
       // Update showFabButton function
-      function showFabButton(rect, text) {
+      function showFabButton(rect, text, retryCount = 0) {
         try {
+          // If we've exceeded max retries, don't attempt again
+          if (retryCount > MAX_FAB_RETRIES) {
+            console.log('Giving up on showing FAB button after multiple retries');
+            fabButtonRetryCount = 0; // Reset for future attempts
+            return;
+          }
+
           // Store current selection info
           currentSelectionRect = rect;
           currentSelectedText = text;
@@ -536,11 +749,15 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           };
         } catch (error) {
           console.error('Error showing FAB button:', error);
-          // Create a new button if the old one was invalidated
+          // Create a new button if the old one was invalidated, but limit retries
           if (error.message.includes('Extension context invalidated')) {
             fabButton = null;
-            // Retry showing the button
-            setTimeout(() => showFabButton(rect, text), 100);
+            // Retry showing the button with incremented retry count
+            if (retryCount < MAX_FAB_RETRIES) {
+              setTimeout(() => showFabButton(rect, text, retryCount + 1), 100);
+            } else {
+              console.warn('Maximum FAB button retries reached, giving up');
+            }
           }
         }
       }
@@ -583,7 +800,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           let top = newRect.top + window.scrollY + (newRect.height / 2) - (buttonHeight / 2);
 
           // Adjust if would go off screen horizontally
-          if (left + buttonWidth > window.innerWidth - spacing) {
+          if (left + buttonWidth > window.scrollX + window.innerWidth - spacing) {
             // Place button to the left of the selection if no room on right
             left = newRect.left + window.scrollX - buttonWidth - spacing;
             
@@ -653,6 +870,48 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
       // Add this function to format the content
       async function formatContent(type, content, text) {
+        // Constants for response length management
+        const CHAR_THRESHOLD = 500; // Character threshold to consider response as "long"
+        const INITIAL_VISIBLE_CHARS = 400; // Characters to show initially for long responses
+        
+        // Helper to manage long text with expand/collapse functionality
+        const manageResponseLength = (html) => {
+          // Use a more reliable way to check content length
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          const textLength = tempDiv.textContent.length;
+          
+          console.log('Content length:', textLength, 'Threshold:', CHAR_THRESHOLD);
+          
+          if (textLength <= CHAR_THRESHOLD) {
+            return html; // Return unchanged if content is not too long
+          }
+          
+          // For long content, wrap in a container with expand/collapse functionality
+          const collapsibleHtml = `
+            <div class="collapsible-container">
+              <div class="collapsible-content collapsed">
+                ${html}
+              </div>
+              <button class="expand-collapse-btn">Show More</button>
+            </div>
+          `;
+          
+          // Log the created collapsible HTML
+          console.log('Created collapsible content with length:', textLength);
+          
+          // Setup collapsible content on next tick to ensure DOM is updated
+          setTimeout(() => {
+            const containers = document.querySelectorAll('.collapsible-container');
+            console.log('Found', containers.length, 'collapsible containers after creation');
+            if (containers.length > 0) {
+              setupCollapsibleContent();
+            }
+          }, 0);
+          
+          return collapsibleHtml;
+        };
+        
         // Helper to sanitize text and split into clean paragraphs
         const sanitizeText = (text) => {
           return text.split('\n')
@@ -672,24 +931,24 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
         switch(type) {
           case 'key-points':
-            return `
+            return manageResponseLength(`
               <div class="bobby-response key-points">
                 <div class="bobby-header">Key Points</div>
                 <ul class="bobby-list">
                   ${createBulletPoints(content)}
                 </ul>
               </div>
-            `;
+            `);
           
           case 'eli5':
-            return `
+            return manageResponseLength(`
               <div class="bobby-response eli5">
                 <div class="bobby-header">Simple Explanation</div>
                 <p class="bobby-text">
                   ${sanitizeText(content)}
                 </p>
               </div>
-            `;
+            `);
           
           case 'pros-cons':
             try {
@@ -700,7 +959,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
               const prosPoints = sections[0] ? createBulletPoints(sections[0]) : '<li>No pros provided</li>';
               const consPoints = sections[1] ? createBulletPoints(sections[1]) : '<li>No cons provided</li>';
               
-              return `
+              return manageResponseLength(`
                 <div class="bobby-response pros-cons">
                   <div class="bobby-section pros-section">
                     <div class="bobby-header">Pros</div>
@@ -711,7 +970,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                     <ul class="bobby-list cons">${consPoints}</ul>
                   </div>
                 </div>
-              `;
+              `);
             } catch (error) {
               console.error('Error formatting pros/cons:', error);
               return `
@@ -723,7 +982,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             }
           
           case 'next-steps':
-            return `
+            return manageResponseLength(`
               <div class="bobby-response next-steps">
                 <div class="bobby-header">Suggested Next Steps</div>
                 <ol class="bobby-list ordered">
@@ -733,17 +992,17 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                     .join('')}
                 </ol>
               </div>
-            `;
+            `);
           
           case 'examples':
-            return `
+            return manageResponseLength(`
               <div class="bobby-response examples">
                 <div class="bobby-header">Real-World Examples</div>
                 <ul class="bobby-list">
                   ${createBulletPoints(content)}
                 </ul>
               </div>
-            `;
+            `);
           
           case 'related':
             try {
@@ -760,7 +1019,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                 `;
               }
 
-              return `
+              return manageResponseLength(`
                 <div class="bobby-response related">
                   <div class="bobby-header">Related Reading</div>
                   <div class="bobby-papers">
@@ -782,7 +1041,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                     `).join('')}
                   </div>
                 </div>
-              `;
+              `);
             } catch (error) {
               console.error('Error in related reading:', error);
               return `
@@ -794,17 +1053,116 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             }
           
           default:
-            return `
+            return manageResponseLength(`
               <div class="bobby-response explanation">
                 <div class="bobby-header">Explanation</div>
                 <p class="bobby-text">
                   ${sanitizeText(content)}
                 </p>
               </div>
-            `;
+            `);
         }
       }
 
+      // Setup collapsible content functionality
+      function setupCollapsibleContent(targetElement = document) {
+        // Use the provided element or document as the context
+        const context = targetElement === document ? targetElement : targetElement.querySelector('.modern-popout-body') || targetElement;
+        
+        console.log('Setting up collapsible content in context:', context);
+        
+        // Find all expand buttons within the context
+        const expandButtons = context.querySelectorAll('.expand-collapse-btn');
+        console.log('Found expand buttons:', expandButtons.length);
+        
+        expandButtons.forEach(button => {
+          // Remove any existing listeners to avoid duplicates
+          const newButton = button.cloneNode(true);
+          if (button.parentNode) {
+            button.parentNode.replaceChild(newButton, button);
+          }
+          
+          newButton.addEventListener('click', (e) => {
+            console.log('Show More button clicked');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const container = newButton.closest('.collapsible-container');
+            if (!container) {
+              console.error('No container found for expand button');
+              return;
+            }
+            
+            const content = container.querySelector('.collapsible-content');
+            if (!content) {
+              console.error('No content found in container');
+              return;
+            }
+            
+            console.log('Toggle content display, current state:', 
+                       content.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+            
+            if (content.classList.contains('collapsed')) {
+              // Expand content
+              content.classList.remove('collapsed');
+              content.classList.add('expanded');
+              
+              // Remove the button entirely
+              newButton.remove();
+              
+              // Make sure the parent container expands properly
+              container.style.maxHeight = 'none';
+              
+              // If the popup has a fixed height, adjust it to fit content
+              const popout = container.closest('.modern-popout');
+              if (popout && content.scrollHeight > popout.offsetHeight) {
+                const newHeight = Math.min(
+                  // Limit to 80% of viewport height
+                  window.innerHeight * 0.8,
+                  // Add extra space for the header
+                  content.scrollHeight + 100
+                );
+                popout.style.height = `${newHeight}px`;
+              }
+              
+              // Force repaint to ensure styles apply correctly
+              void content.offsetHeight;
+              
+              console.log('Content expanded and button removed');
+            } else {
+              // Collapse content
+              content.classList.remove('expanded');
+              content.classList.add('collapsed');
+              newButton.textContent = 'Show More';
+              
+              // Scroll to top of container to ensure visibility
+              container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        });
+        
+        // Hide any stray Show More buttons in fact check view
+        let factCheckView = null;
+
+        // Check if context is a DOM element that can use closest
+        if (context !== document && context.nodeType === 1) {
+          factCheckView = context.closest('.modern-popout')?.querySelector('.fact-check-view');
+        } else {
+          // If context is document, find the modern-popout and then the fact-check-view
+          const modernPopout = document.querySelector('.modern-popout');
+          if (modernPopout) {
+            factCheckView = modernPopout.querySelector('.fact-check-view');
+          }
+        }
+
+        if (factCheckView && factCheckView.style.display !== 'none') {
+          const factCheckButtons = factCheckView.querySelectorAll('.expand-collapse-btn');
+          factCheckButtons.forEach(button => button.remove());
+        }
+        
+        console.log(`Set up ${expandButtons.length} collapsible buttons`);
+      }
+      
       // Add this function to handle contextual actions
       async function handleContextualAction(action, originalText, originalResponse) {
         // Get current prompt type
@@ -915,7 +1273,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       let followUpStack = [];
 
       // Update showFollowUpInput function
-      function showFollowUpInput(originalText, originalResponse) {
+      async function showFollowUpInput(originalText, originalResponse) {
         // Get references to the correct elements
         const popoutDiv = annotationDiv;
         const contentDiv = popoutDiv.querySelector('.modern-popout-body');
@@ -1034,14 +1392,17 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                   <ul class="citations-list">
                     ${citations.map((c, index) => `
                       <li class="citation-item">
-                        <span class="citation-number">[${index + 1}]</span>
+                        <span class="citation-tooltip">
+                          <span class="citation-number">[${index + 1}]</span>
+                          <span class="tooltip-content">${c.url}</span>
+                        </span>
                         <a href="${c.url}" 
                            target="_blank" 
                            rel="noopener noreferrer" 
                            class="citation-link"
                            title="${c.text || ''}"
                         >
-                          ${c.title || c.url}
+                          ${c.title || c.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
                         </a>
                       </li>
                     `).join('')}
@@ -1057,6 +1418,32 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
               'follow-up'
             );
 
+            // Process answer based on length
+            let answerContent = '';
+            
+            if (answer.length > 500) {
+              // For long answers, create collapsible content
+              answerContent = `
+                <div class="collapsible-container">
+                  <div class="collapsible-content collapsed">
+                    <div class="followup-answer-content">
+                      ${answer}
+                      ${citationsHtml}
+                    </div>
+                  </div>
+                  <button class="expand-collapse-btn">Show More</button>
+                </div>
+              `;
+            } else {
+              // For shorter answers, display normally
+              answerContent = `
+                <div class="followup-answer-content">
+                  ${answer}
+                  ${citationsHtml}
+                </div>
+              `;
+            }
+            
             // Update the formatted content template
             const formattedContent = `
               <div class="followup-container">
@@ -1069,10 +1456,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
                     <strong>Your question:</strong> ${question}
                   </div>
                   <div class="followup-answer">
-                    <div class="followup-answer-content">
-                      ${answer}
-                      ${citationsHtml}
-                    </div>
+                    ${answerContent}
                   </div>
                 </div>
                 <div class="followup-actions">
@@ -1085,7 +1469,33 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
             // Re-attach event listeners
             const container = contentDiv.querySelector('.followup-container');
+            
+            // Setup collapsible content
+            setupCollapsibleContent();
             container.onclick = (e) => e.stopPropagation();
+
+            // Ensure proper scrolling for the answer
+            const followupAnswer = contentDiv.querySelector('.followup-answer');
+            if (followupAnswer) {
+              // Calculate available height
+              const header = annotationDiv.querySelector('.followup-header');
+              const question = annotationDiv.querySelector('.followup-question');
+              const actions = annotationDiv.querySelector('.followup-actions');
+              
+              if (header && question && actions) {
+                const totalHeight = annotationDiv.offsetHeight;
+                const headerHeight = header.offsetHeight;
+                const questionHeight = question.offsetHeight;
+                const actionsHeight = actions.offsetHeight;
+                
+                // Calculate available height for the answer
+                const availableHeight = totalHeight - headerHeight - questionHeight - actionsHeight - 40; // 40px for padding
+                
+                // Set max-height and ensure scrolling
+                followupAnswer.style.maxHeight = `${Math.max(200, availableHeight)}px`;
+                followupAnswer.style.overflowY = 'auto';
+              }
+            }
 
             const backButton = contentDiv.querySelector('.followup-back');
             backButton.onclick = (e) => {
@@ -1319,10 +1729,65 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         window.initDraggable(annotationDiv, factCheckHeader);
 
         // Add click handler for go back button
-        factCheckView.querySelector('.go-back-button').onclick = () => {
+        const backButton = factCheckView.querySelector('.go-back-button');
+        backButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          console.log('Fact check back button clicked');
+          
+          // Hide fact check view completely
           factCheckView.style.display = 'none';
-          annotationDiv.querySelector('.main-view').style.display = 'flex';
-        };
+          factCheckView.style.visibility = 'hidden';
+          
+          // Show main view
+          const mainView = annotationDiv.querySelector('.main-view');
+          if (mainView) {
+            // Make the main view fully visible
+            mainView.style.display = 'flex';
+            mainView.style.visibility = 'visible';
+            mainView.style.opacity = '1';
+            
+            // Ensure the prompt selector is visible with higher specificity
+            const promptSelector = annotationDiv.querySelector('.custom-prompt-selector');
+            if (promptSelector) {
+              promptSelector.style.display = 'inline-block';
+              promptSelector.style.visibility = 'visible';
+              promptSelector.style.opacity = '1';
+              
+              // Make sure the header is visible
+              const header = mainView.querySelector('.modern-popout-header');
+              if (header) {
+                header.style.display = 'flex';
+                header.style.visibility = 'visible';
+              }
+            }
+            
+            // Force a redraw by accessing offsetHeight to ensure styles apply
+            void mainView.offsetHeight;
+            
+            // Ensure proper state of UI elements in main view
+            const content = mainView.querySelector('.modern-popout-body');
+            if (content) {
+              // Make sure this is visible too
+              content.style.display = 'block';
+              content.style.visibility = 'visible';
+              
+              // Use try-catch to avoid errors if setupCollapsibleContent has issues
+              try {
+                setupCollapsibleContent(content);
+              } catch (error) {
+                console.error('Error setting up collapsible content:', error);
+              }
+            }
+            
+            console.log('Main view is now visible');
+          }
+          
+          // Remove any stray Show More buttons in the fact check view
+          const expandButtons = factCheckView.querySelectorAll('.expand-collapse-btn');
+          expandButtons.forEach(button => button.remove());
+        });
 
         annotationDiv.appendChild(factCheckView);
         return factCheckView;
@@ -1339,7 +1804,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           setTimeout(() => {
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
-            showFabButton(rect, text);
+            showFabButton(rect, text, 0); // Add explicit retry count of 0
           }, 10);
         }
       });
@@ -1385,6 +1850,31 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
         return await response.json();
       }
+
+      // Add this function after setupCollapsibleContent
+      function debugCollapsibleContent() {
+        const containers = document.querySelectorAll('.collapsible-container');
+        console.log('Found collapsible containers:', containers.length);
+        
+        containers.forEach((container, index) => {
+          const content = container.querySelector('.collapsible-content');
+          const button = container.querySelector('.expand-collapse-btn');
+          
+          console.log(`Container ${index}:`, {
+            hasContent: !!content,
+            contentClasses: content ? content.className : 'N/A',
+            hasButton: !!button,
+            buttonText: button ? button.textContent : 'N/A',
+            contentHeight: content ? content.scrollHeight : 'N/A',
+            containerHeight: container.scrollHeight
+          });
+        });
+      }
+
+      // Call this after setupCollapsibleContent() in the appropriate places
+      // For example, after line 272 and line 1241
+      setupCollapsibleContent();
+      debugCollapsibleContent();
     } catch (error) {
       console.error('Initialization error:', error);
       // Attempt to recover
