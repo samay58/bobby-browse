@@ -23,40 +23,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const response = await fetch('https://api.exa.ai/search', {
           method: 'POST',
           headers: {
-            'x-api-key': request.exaKey,
+            'Authorization': `Bearer ${request.exaKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             query: request.query,
-            numResults: 3,
+            numResults: 5,
             useAutoprompt: true,
             type: "auto",
             contents: {
               text: {
-                maxCharacters: 1000,
+                maxCharacters: 2000,
                 includeHtmlTags: false
               },
               highlights: {
-                numSentences: 2,
-                highlightsPerUrl: 1
+                numSentences: 3,
+                highlightsPerUrl: 2
               }
             },
             livecrawl: "always"
           })
         });
 
-        console.log('Exa API response status:', response.status);
         if (!response.ok) {
-          console.error('Exa API error response:', response);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Exa API response data:', data);
         sendResponse({ success: true, data });
       } catch (error) {
         console.error('Exa API Error:', error);
-        console.error('Error stack:', error.stack);
         sendResponse({ success: false, error: error.message });
       }
     };
@@ -161,4 +157,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     asyncResponse();
     return true;
   }
-}); 
+
+  if (request.action === "verifyExaClaim") {
+    verifyExaClaim(request.claim, request.context, request.exaKey)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep the message channel open for async response
+  }
+});
+
+// Function to verify claims using Exa API
+async function verifyExaClaim(claim, context, apiKey) {
+  const response = await fetch('https://api.exa.ai/verify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      claim: claim,
+      context: context
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Exa API error: ${response.status}`);
+  }
+
+  return await response.json();
+} 

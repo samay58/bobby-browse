@@ -45,3 +45,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 }); 
+
+// Save options to chrome.storage
+function saveOptions() {
+  const openai = document.getElementById('openai').value.trim();
+  const exa = document.getElementById('exa').value.trim();
+  const pplx = document.getElementById('pplx').value.trim();
+
+  chrome.storage.sync.set({
+    OPENAI_API_KEY: openai,
+    EXA_API_KEY: exa,
+    PPLX_API_KEY: pplx
+  }, function() {
+    // Update status to let user know options were saved
+    const status = document.getElementById('status');
+    status.textContent = 'Settings saved!';
+    setTimeout(function() {
+      status.textContent = '';
+    }, 2000);
+  });
+}
+
+// Restore options from chrome.storage
+function restoreOptions() {
+  chrome.storage.sync.get({
+    OPENAI_API_KEY: '',
+    EXA_API_KEY: '',
+    PPLX_API_KEY: ''
+  }, function(items) {
+    document.getElementById('openai').value = items.OPENAI_API_KEY || '';
+    document.getElementById('exa').value = items.EXA_API_KEY || '';
+    document.getElementById('pplx').value = items.PPLX_API_KEY || '';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', restoreOptions);
+document.getElementById('save').addEventListener('click', saveOptions); 

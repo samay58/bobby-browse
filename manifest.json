@@ -59,5 +59,6 @@
   },
   "chrome_url_overrides": {
     "history": "history.html"
-  }
+  },
+  "options_page": "options.html"
 } 
