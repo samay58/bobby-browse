@@ -51,6 +51,7 @@
   font-size: 14px !important;
   line-height: 1.5 !important;
   overflow-y: auto !important;
+  max-height: 400px !important;
   max-width: 500px !important;
 }
 
@@ -97,6 +98,13 @@
   font-weight: 400 !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
+  -webkit-appearance: menulist !important;
+  appearance: menulist !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  box-shadow: none !important;
+  display: inline-block !important;
+  margin-right: 5px !important;
 }
 
 .prompt-selector:hover {
@@ -107,7 +115,7 @@
 .prompt-selector:focus {
   outline: none !important;
   border-color: #6366f1 !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
 }
 
 .copy-button {
@@ -717,6 +725,16 @@
   max-width: 800px !important;
   max-height: 800px !important;
   transition: none !important;
+  resize: both !important; /* Enable native resizing as backup */
+  overflow: hidden !important;
+}
+
+/* Main view takes full size of container */
+.modern-popout .main-view {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* Elegant resize handle */
@@ -724,10 +742,10 @@
   position: absolute !important;
   bottom: 0 !important;
   right: 0 !important;
-  width: 24px !important;
-  height: 24px !important;
+  width: 30px !important;
+  height: 30px !important;
   cursor: se-resize !important;
-  opacity: 0 !important;
+  opacity: 0.7 !important;
   transition: opacity 0.2s ease !important;
   z-index: 2147483647 !important;
   background: transparent !important;
@@ -739,10 +757,10 @@
   position: absolute !important;
   right: 6px !important;
   bottom: 6px !important;
-  width: 14px !important;
-  height: 14px !important;
-  border-right: 2px solid rgba(99, 102, 241, 0.5) !important;
-  border-bottom: 2px solid rgba(99, 102, 241, 0.5) !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-right: 3px solid rgba(99, 102, 241, 0.8) !important;
+  border-bottom: 3px solid rgba(99, 102, 241, 0.8) !important;
   border-radius: 0 0 2px 0 !important;
 }
 
@@ -752,8 +770,8 @@
 
 .modern-popout.resizing {
   user-select: none !important;
-  pointer-events: none !important;
   will-change: width, height !important;
+  pointer-events: auto !important; /* Keep pointer events for resize handle */
 }
 
 .modern-popout.resizing .resizer.bottom-right {
@@ -765,6 +783,79 @@
 @media (prefers-color-scheme: dark) {
   .resizer.bottom-right::after {
     border-color: rgba(99, 102, 241, 0.6) !important;
+  }
+}
+
+/* Collapsible content styles */
+.collapsible-container {
+  position: relative !important;
+  width: 100% !important;
+  transition: max-height 0.3s ease !important;
+}
+
+.collapsible-content.collapsed {
+  max-height: 300px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+}
+
+.collapsible-content.expanded {
+  max-height: none !important;
+  overflow: visible !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+}
+
+.collapsible-content.collapsed::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 60px !important;
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.9)) !important;
+  pointer-events: none !important;
+}
+
+.expand-collapse-btn {
+  display: block !important;
+  margin: 8px auto !important;
+  padding: 8px 16px !important;
+  background-color: #4f46e5 !important;
+  border: none !important;
+  border-radius: 4px !important;
+  color: white !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
+  position: relative !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.expand-collapse-btn:hover {
+  background-color: #3730a3 !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .collapsible-content.collapsed::after {
+    background: linear-gradient(to bottom, rgba(30,30,30,0), rgba(30,30,30,0.9)) !important;
+  }
+  
+  .expand-collapse-btn {
+    background-color: #6366f1 !important;
+    color: white !important;
+  }
+  
+  .expand-collapse-btn:hover {
+    background-color: #818cf8 !important;
+    color: white !important;
   }
 }
 
@@ -984,6 +1075,7 @@
   display: flex !important;
   flex-direction: column !important;
   height: 100% !important;
+  overflow: hidden !important;
 }
 
 .followup-header {
@@ -1082,6 +1174,8 @@
   font-size: 14px !important;
   line-height: 1.6 !important;
   color: #374151 !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
 }
 
 /* Dark mode styles */
@@ -1285,24 +1379,29 @@
 }
 
 .citation-number {
-  color: #6366f1 !important;
-  font-size: 10px !important;
-  flex-shrink: 0 !important;
+  display: inline-block !important;
+  font-size: 12px !important;
+  color: #4f46e5 !important;
+  margin-right: 4px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
 }
 
 .citation-link {
-  color: #6b7280 !important;
+  color: #4f46e5 !important;
   text-decoration: none !important;
-  transition: color 0.15s ease !important;
-  font-size: 11px !important;
-  line-height: 1.4 !important;
+  font-size: 13px !important;
+  transition: color 0.2s !important;
+  display: inline-block !important;
+  max-width: calc(100% - 30px) !important;
+  white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  white-space: nowrap !important;
+  vertical-align: middle !important;
 }
 
 .citation-link:hover {
-  color: #6366f1 !important;
+  color: #3730a3 !important;
   text-decoration: underline !important;
 }
 
@@ -1321,10 +1420,164 @@
   }
 
   .citation-link {
-    color: #9ca3af !important;
+    color: #818cf8 !important;
   }
 
   .citation-link:hover {
+    color: #a5b4fc !important;
+  }
+}
+
+/* Citation tooltip styles */
+.citation-tooltip {
+  position: relative !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+}
+
+.citation-tooltip .tooltip-content {
+  visibility: hidden !important;
+  width: 200px !important;
+  background-color: #333 !important;
+  color: #fff !important;
+  text-align: center !important;
+  border-radius: 4px !important;
+  padding: 5px !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  bottom: 125% !important;
+  opacity: 0 !important;
+  transition: opacity 0.2s !important;
+  font-size: 12px !important;
+  word-break: break-all !important;
+}
+
+.citation-tooltip:hover .tooltip-content {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Add a small arrow at the bottom of the tooltip */
+.citation-tooltip .tooltip-content::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 50% !important;
+  margin-left: -5px !important;
+  border-width: 5px !important;
+  border-style: solid !important;
+  border-color: #333 transparent transparent transparent !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .citation-tooltip .tooltip-content {
+    background-color: #555 !important;
+    color: #f0f0f0 !important;
+  }
+  
+  .citation-tooltip .tooltip-content::after {
+    border-color: #555 transparent transparent transparent !important;
+  }
+}
+
+/* Custom dropdown styles */
+.custom-prompt-selector {
+  min-width: 140px !important;
+  position: relative !important;
+  cursor: pointer !important;
+  margin-right: 8px !important;
+  user-select: none !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+}
+
+.selected-prompt {
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  position: relative !important;
+}
+
+.selected-prompt:hover {
+  border-color: #6366f1 !important;
+  background: white !important;
+}
+
+.dropdown-arrow {
+  margin-left: 8px !important;
+  font-size: 10px !important;
+  color: #9ca3af !important;
+}
+
+.prompt-options {
+  display: none;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  width: 100% !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  margin-top: 4px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  z-index: 10001 !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+.prompt-option {
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  color: #374151 !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.prompt-option:hover {
+  background: #f3f4f6 !important;
+  color: #6366f1 !important;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .selected-prompt {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+  }
+  
+  .selected-prompt:hover {
+    border-color: #6366f1 !important;
+    background: #374151 !important;
+  }
+
+  .dropdown-arrow {
+    color: #9ca3af !important;
+  }
+  
+  .prompt-options {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  .prompt-option {
+    color: #e5e7eb !important;
+  }
+  
+  .prompt-option:hover {
+    background: #374151 !important;
     color: #818cf8 !important;
   }
 } 

@@ -10,7 +10,9 @@ function initDraggable(element, handle) {
   dragHandle.innerHTML = '⋮⋮';
   handle.insertBefore(dragHandle, handle.firstChild);
 
+  // Allow dragging from the entire header, not just the drag handle
   dragHandle.addEventListener('mousedown', startDrag);
+  handle.addEventListener('mousedown', startDrag);
   document.addEventListener('mousemove', drag);
   document.addEventListener('mouseup', stopDrag);
 
@@ -63,6 +65,10 @@ function initDraggable(element, handle) {
     // Update element position
     element.style.left = `${newX}px`;
     element.style.top = `${newY}px`;
+    
+    // Ensure the element remains visible during drag
+    element.style.display = 'flex';
+    element.style.opacity = '1';
   }
 
   function stopDrag() {
@@ -74,6 +80,18 @@ function initDraggable(element, handle) {
     // Remove dragging class
     element.classList.remove('dragging');
     dragHandle.style.cursor = 'grab';
+    
+    // Ensure the element remains visible after the drag
+    element.style.display = 'flex';
+    element.style.opacity = '1';
+    
+    // Double-check visibility after a slight delay (handles edge cases)
+    setTimeout(() => {
+      if (element && document.body.contains(element)) {
+        element.style.display = 'flex';
+        element.style.opacity = '1';
+      }
+    }, 50);
   }
 }
 
