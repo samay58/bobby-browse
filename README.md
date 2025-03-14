@@ -52,11 +52,21 @@ window.BOBBY_CONFIG = {
 
 ## Tech Stack 🛠️
 
-- Vanilla JavaScript
+- Vanilla JavaScript with modular architecture
 - CSS3 with modern features
 - OpenAI GPT API
 - Exa API for fact-checking and research
 - Perplexity API for enhanced responses
+
+### Modular Architecture
+
+Bobby uses a modular architecture to improve maintainability and organization:
+
+- `components/modules/PromptManager.js`: Manages prompt templates and types
+- `components/modules/ButtonManager.js`: Handles button creation and styling
+- `components/modules/UIComponents.js`: Reusable UI elements
+- `components/modules/APIClient.js`: Centralizes API communication
+- `components/ModuleInitializer.js`: Provides backward compatibility
 
 ## Security 🔒
 

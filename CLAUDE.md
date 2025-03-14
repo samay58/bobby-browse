@@ -20,5 +20,11 @@
 - **background.js**: API requests, message handling (service worker)
 - **content.js**: DOM manipulation, user interface
 - **components/**: Reusable UI components and functionality
+  - **components/modules/**: Modular code organization
+    - **PromptManager.js**: Manages prompt templates and analysis
+    - **ButtonManager.js**: Button creation and styling
+    - **UIComponents.js**: Reusable UI elements
+    - **APIClient.js**: API communication layer
+  - **components/ModuleInitializer.js**: Compatibility bridge
 - **config.js**: API keys (excluded from git)
 - **State Management**: Use Chrome storage API for persistent settings

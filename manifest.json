@@ -29,6 +29,7 @@
       "draggable.js",
       "history.js",
       "components/HallucinationDetector.js",
+      "components/ModuleInitializer.js",
       "content.js"
     ],
     "run_at": "document_idle"
@@ -49,7 +50,9 @@
   "web_accessible_resources": [{
     "resources": [
       "styles.css",
-      "icon.png"
+      "icon.png",
+      "components/modules/*.js",
+      "components/*.js"
     ],
     "matches": ["<all_urls>"]
   }],
