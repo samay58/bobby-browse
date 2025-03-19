@@ -725,8 +725,11 @@
   max-width: 800px !important;
   max-height: 800px !important;
   transition: none !important;
-  resize: both !important; /* Enable native resizing as backup */
+  resize: none !important; /* Disable native resizing as we use custom implementation */
   overflow: hidden !important;
+  will-change: width, height !important; /* Optimize for animations */
+  backface-visibility: hidden !important; /* Prevent flickering */
+  transform: translateZ(0) !important; /* Force GPU acceleration */
 }
 
 /* Main view takes full size of container */
@@ -762,6 +765,19 @@
   border-right: 3px solid rgba(99, 102, 241, 0.8) !important;
   border-bottom: 3px solid rgba(99, 102, 241, 0.8) !important;
   border-radius: 0 0 2px 0 !important;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+.resizer.bottom-right::before {
+  content: '' !important;
+  position: absolute !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-right: 2px solid rgba(99, 102, 241, 0.8) !important;
+  border-bottom: 2px solid rgba(99, 102, 241, 0.8) !important;
+  border-radius: 0 0 1px 0 !important;
 }
 
 .modern-popout:hover .resizer.bottom-right {
