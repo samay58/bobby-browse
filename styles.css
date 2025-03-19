@@ -725,8 +725,12 @@
   max-width: 800px !important;
   max-height: 800px !important;
   transition: none !important;
-  resize: both !important; /* Enable native resizing as backup */
+  resize: none !important; /* Disable native resizing to use our custom implementation */
   overflow: hidden !important;
+  box-sizing: border-box !important;
+  transform: translate3d(0, 0, 0) !important; /* Force GPU acceleration */
+  backface-visibility: hidden !important; /* Prevent flickering during animations */
+  -webkit-font-smoothing: antialiased !important;
 }
 
 /* Main view takes full size of container */
@@ -735,48 +739,61 @@
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
+  overflow: hidden !important;
+  position: relative !important;
+  box-sizing: border-box !important;
 }
 
-/* Elegant resize handle */
+/* Improved resize handle with better visibility and larger touch target */
 .resizer.bottom-right {
   position: absolute !important;
   bottom: 0 !important;
   right: 0 !important;
-  width: 30px !important;
-  height: 30px !important;
+  width: 36px !important;
+  height: 36px !important;
   cursor: se-resize !important;
-  opacity: 0.7 !important;
-  transition: opacity 0.2s ease !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease, background-color 0.2s ease !important;
   z-index: 2147483647 !important;
   background: transparent !important;
   touch-action: none !important;
+  border-radius: 0 0 12px 0 !important;
 }
 
 .resizer.bottom-right::after {
   content: '' !important;
   position: absolute !important;
-  right: 6px !important;
-  bottom: 6px !important;
-  width: 18px !important;
-  height: 18px !important;
-  border-right: 3px solid rgba(99, 102, 241, 0.8) !important;
-  border-bottom: 3px solid rgba(99, 102, 241, 0.8) !important;
-  border-radius: 0 0 2px 0 !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-right: 3px solid rgba(99, 102, 241, 0.9) !important;
+  border-bottom: 3px solid rgba(99, 102, 241, 0.9) !important;
+  border-radius: 0 0 3px 0 !important;
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 .modern-popout:hover .resizer.bottom-right {
   opacity: 1 !important;
+  background-color: rgba(99, 102, 241, 0.05) !important;
 }
 
 .modern-popout.resizing {
   user-select: none !important;
   will-change: width, height !important;
   pointer-events: auto !important; /* Keep pointer events for resize handle */
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3) !important; /* Highlight border during resize */
 }
 
 .modern-popout.resizing .resizer.bottom-right {
   pointer-events: auto !important;
   opacity: 1 !important;
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+
+.modern-popout.resizing .resizer.bottom-right::after {
+  border-color: rgba(99, 102, 241, 1) !important;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Dark mode adjustments */
