@@ -72,6 +72,16 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         const startWidth = annotationDiv.offsetWidth;
         const startHeight = annotationDiv.offsetHeight;
         
+        // Store initial positions to prevent unwanted movement during resize
+        const startLeft = parseInt(annotationDiv.style.left) || 0;
+        const startTop = parseInt(annotationDiv.style.top) || 0;
+        
+        // Fix position to prevent shifting during resize
+        annotationDiv.style.right = 'auto';
+        annotationDiv.style.bottom = 'auto';
+        annotationDiv.style.left = `${startLeft}px`;
+        annotationDiv.style.top = `${startTop}px`;
+        
         const resize = (e) => {
           if (!isResizing || !annotationDiv || !document.body.contains(annotationDiv)) {
             isResizing = false;
@@ -85,51 +95,81 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             const deltaY = e.clientY - startY;
             
             // Set new dimensions with min/max constraints
-            // Enforce both width and height changes together
             const newWidth = Math.min(800, Math.max(300, startWidth + deltaX));
             const newHeight = Math.min(800, Math.max(200, startHeight + deltaY));
-            
-            // Save current dimensions before resizing to check if they changed
-            const oldWidth = annotationDiv.offsetWidth;
-            const oldHeight = annotationDiv.offsetHeight;
             
             // Apply dimensions - directly modify both width and height
             annotationDiv.style.width = `${newWidth}px`;
             annotationDiv.style.height = `${newHeight}px`;
             
+            // Ensure position remains fixed during resize
+            annotationDiv.style.left = `${startLeft}px`;
+            annotationDiv.style.top = `${startTop}px`;
+            
             // Force reflow to ensure the changes are applied
             void annotationDiv.offsetWidth;
             
-            // Ensure the popup stays visible
-            annotationDiv.style.display = 'flex';
-            annotationDiv.style.opacity = '1';
+            // Ensure the popup stays visible with higher specificity
+            annotationDiv.style.display = 'flex !important';
+            annotationDiv.style.opacity = '1 !important';
+            annotationDiv.style.visibility = 'visible !important';
             
             // Layout adjustments for child elements
             const mainView = annotationDiv.querySelector('.main-view');
             if (mainView) {
               mainView.style.width = '100%';
               mainView.style.height = '100%';
+              mainView.style.display = 'flex';
+              mainView.style.flexDirection = 'column';
             }
             
             // Adjust content body height
             const header = annotationDiv.querySelector('.modern-popout-header');
             const content = annotationDiv.querySelector('.modern-popout-body');
             if (content && header) {
-              // Calculate available height for content
-              const availableHeight = newHeight - header.offsetHeight - 32;
-              content.style.height = `${availableHeight}px`;
-              content.style.overflow = 'auto';
+              // Calculate available height for content with proper measurement
+              const headerHeight = header.getBoundingClientRect().height;
+              const availableHeight = newHeight - headerHeight - 32;
+              
+              // Apply height with !important to override any conflicting styles
+              content.style.cssText += `
+                height: ${availableHeight}px !important;
+                max-height: ${availableHeight}px !important;
+                overflow-y: auto !important;
+              `;
               
               // Also adjust follow-up answer height if present
               const followupAnswer = content.querySelector('.followup-answer');
               if (followupAnswer) {
-                followupAnswer.style.maxHeight = `${availableHeight - 100}px`;
-                followupAnswer.style.overflowY = 'auto';
+                followupAnswer.style.cssText += `
+                  max-height: ${availableHeight - 100}px !important;
+                  overflow-y: auto !important;
+                `;
+              }
+              
+              // Adjust any collapsible content
+              const collapsibleContent = content.querySelector('.collapsible-content');
+              if (collapsibleContent && collapsibleContent.classList.contains('expanded')) {
+                collapsibleContent.style.maxHeight = 'none';
               }
             }
             
-            // Log resize dimensions for debugging
-            console.log(`Resizing: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
+            // Adjust fact check view if visible
+            const factCheckView = annotationDiv.querySelector('.fact-check-view');
+            if (factCheckView && factCheckView.style.display !== 'none') {
+              factCheckView.style.width = '100%';
+              factCheckView.style.height = '100%';
+              
+              const factCheckContent = factCheckView.querySelector('.fact-check-content');
+              if (factCheckContent) {
+                const factCheckHeader = factCheckView.querySelector('.fact-check-header');
+                if (factCheckHeader) {
+                  const headerHeight = factCheckHeader.getBoundingClientRect().height;
+                  factCheckContent.style.height = `${newHeight - headerHeight - 32}px`;
+                  factCheckContent.style.maxHeight = `${newHeight - headerHeight - 32}px`;
+                }
+              }
+            }
           });
         };
 
@@ -142,31 +182,56 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           
           if (annotationDiv && document.body.contains(annotationDiv)) {
             annotationDiv.classList.remove('resizing');
-            // Ensure popup stays visible and fully opaque
-            annotationDiv.style.display = 'flex';
-            annotationDiv.style.opacity = '1';
+            
+            // Ensure popup stays visible and fully opaque with higher specificity
+            annotationDiv.style.cssText += `
+              display: flex !important;
+              opacity: 1 !important;
+              visibility: visible !important;
+            `;
             
             // Adjust all child elements to fit the new size
             const mainView = annotationDiv.querySelector('.main-view');
             if (mainView) {
-              mainView.style.width = '100%';
-              mainView.style.height = '100%';
+              mainView.style.cssText += `
+                width: 100% !important;
+                height: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+              `;
             }
             
             // Adjust content height again to ensure it's correct
             const header = annotationDiv.querySelector('.modern-popout-header');
             const content = annotationDiv.querySelector('.modern-popout-body');
             if (content && header) {
-              content.style.height = `${annotationDiv.offsetHeight - header.offsetHeight - 32}px`;
+              const headerHeight = header.getBoundingClientRect().height;
+              const containerHeight = annotationDiv.getBoundingClientRect().height;
+              const newContentHeight = containerHeight - headerHeight - 32;
+              
+              content.style.cssText += `
+                height: ${newContentHeight}px !important;
+                max-height: ${newContentHeight}px !important;
+                overflow-y: auto !important;
+              `;
             }
             
             // Guarantee visibility after a brief delay (to handle any race conditions)
             setTimeout(() => {
               if (annotationDiv && document.body.contains(annotationDiv)) {
-                annotationDiv.style.display = 'flex';
-                annotationDiv.style.opacity = '1';
+                annotationDiv.style.cssText += `
+                  display: flex !important;
+                  opacity: 1 !important;
+                  visibility: visible !important;
+                `;
+                
+                // Force a layout recalculation
+                void annotationDiv.offsetHeight;
+                
+                // Re-setup any collapsible content
+                setupCollapsibleContent();
               }
-            }, 50);
+            }, 100);
           }
         };
 
