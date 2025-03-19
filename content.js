@@ -72,6 +72,17 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         const startWidth = annotationDiv.offsetWidth;
         const startHeight = annotationDiv.offsetHeight;
         
+        // Store initial z-index to restore it later
+        const initialZIndex = annotationDiv.style.zIndex || '2147483647';
+        
+        // Ensure the popup has the highest z-index during resize
+        annotationDiv.style.zIndex = '2147483647';
+        
+        // Make sure the popup is fully visible before starting resize
+        annotationDiv.style.display = 'flex';
+        annotationDiv.style.opacity = '1';
+        annotationDiv.style.visibility = 'visible';
+        
         const resize = (e) => {
           if (!isResizing || !annotationDiv || !document.body.contains(annotationDiv)) {
             isResizing = false;
@@ -80,56 +91,68 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           
           // Use requestAnimationFrame to optimize performance
           requestAnimationFrame(() => {
-            // Calculate deltas
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            
-            // Set new dimensions with min/max constraints
-            // Enforce both width and height changes together
-            const newWidth = Math.min(800, Math.max(300, startWidth + deltaX));
-            const newHeight = Math.min(800, Math.max(200, startHeight + deltaY));
-            
-            // Save current dimensions before resizing to check if they changed
-            const oldWidth = annotationDiv.offsetWidth;
-            const oldHeight = annotationDiv.offsetHeight;
-            
-            // Apply dimensions - directly modify both width and height
-            annotationDiv.style.width = `${newWidth}px`;
-            annotationDiv.style.height = `${newHeight}px`;
-            
-            // Force reflow to ensure the changes are applied
-            void annotationDiv.offsetWidth;
-            
-            // Ensure the popup stays visible
-            annotationDiv.style.display = 'flex';
-            annotationDiv.style.opacity = '1';
-            
-            // Layout adjustments for child elements
-            const mainView = annotationDiv.querySelector('.main-view');
-            if (mainView) {
-              mainView.style.width = '100%';
-              mainView.style.height = '100%';
-            }
-            
-            // Adjust content body height
-            const header = annotationDiv.querySelector('.modern-popout-header');
-            const content = annotationDiv.querySelector('.modern-popout-body');
-            if (content && header) {
-              // Calculate available height for content
-              const availableHeight = newHeight - header.offsetHeight - 32;
-              content.style.height = `${availableHeight}px`;
-              content.style.overflow = 'auto';
+            try {
+              // Calculate deltas
+              const deltaX = e.clientX - startX;
+              const deltaY = e.clientY - startY;
               
-              // Also adjust follow-up answer height if present
-              const followupAnswer = content.querySelector('.followup-answer');
-              if (followupAnswer) {
-                followupAnswer.style.maxHeight = `${availableHeight - 100}px`;
-                followupAnswer.style.overflowY = 'auto';
+              // Set new dimensions with min/max constraints
+              const newWidth = Math.min(800, Math.max(300, startWidth + deltaX));
+              const newHeight = Math.min(800, Math.max(200, startHeight + deltaY));
+              
+              // Apply dimensions - directly modify both width and height
+              annotationDiv.style.width = `${newWidth}px`;
+              annotationDiv.style.height = `${newHeight}px`;
+              
+              // Force reflow to ensure the changes are applied
+              void annotationDiv.offsetWidth;
+              
+              // Ensure the popup stays visible
+              annotationDiv.style.display = 'flex';
+              annotationDiv.style.opacity = '1';
+              annotationDiv.style.visibility = 'visible';
+              
+              // Layout adjustments for child elements
+              const mainView = annotationDiv.querySelector('.main-view');
+              if (mainView) {
+                mainView.style.width = '100%';
+                mainView.style.height = '100%';
               }
+              
+              // Adjust content body height
+              const header = annotationDiv.querySelector('.modern-popout-header');
+              const content = annotationDiv.querySelector('.modern-popout-body');
+              if (content && header) {
+                // Calculate available height for content
+                const availableHeight = newHeight - header.offsetHeight - 32;
+                content.style.height = `${availableHeight}px`;
+                content.style.overflow = 'auto';
+                
+                // Also adjust follow-up answer height if present
+                const followupAnswer = content.querySelector('.followup-answer');
+                if (followupAnswer) {
+                  followupAnswer.style.maxHeight = `${availableHeight - 100}px`;
+                  followupAnswer.style.overflowY = 'auto';
+                }
+                
+                // Adjust fact check view if present
+                const factCheckView = annotationDiv.querySelector('.fact-check-view');
+                if (factCheckView && factCheckView.style.display !== 'none') {
+                  factCheckView.style.width = '100%';
+                  factCheckView.style.height = '100%';
+                  
+                  const factCheckContent = factCheckView.querySelector('.fact-check-content');
+                  if (factCheckContent) {
+                    const factCheckHeader = factCheckView.querySelector('.fact-check-header');
+                    if (factCheckHeader) {
+                      factCheckContent.style.height = `${newHeight - factCheckHeader.offsetHeight}px`;
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error during resize:', error);
             }
-            
-            // Log resize dimensions for debugging
-            console.log(`Resizing: ${oldWidth}x${oldHeight} → ${newWidth}x${newHeight}`);
           });
         };
 
@@ -141,32 +164,59 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           document.removeEventListener('mouseleave', stopResize);
           
           if (annotationDiv && document.body.contains(annotationDiv)) {
-            annotationDiv.classList.remove('resizing');
-            // Ensure popup stays visible and fully opaque
-            annotationDiv.style.display = 'flex';
-            annotationDiv.style.opacity = '1';
-            
-            // Adjust all child elements to fit the new size
-            const mainView = annotationDiv.querySelector('.main-view');
-            if (mainView) {
-              mainView.style.width = '100%';
-              mainView.style.height = '100%';
-            }
-            
-            // Adjust content height again to ensure it's correct
-            const header = annotationDiv.querySelector('.modern-popout-header');
-            const content = annotationDiv.querySelector('.modern-popout-body');
-            if (content && header) {
-              content.style.height = `${annotationDiv.offsetHeight - header.offsetHeight - 32}px`;
-            }
-            
-            // Guarantee visibility after a brief delay (to handle any race conditions)
-            setTimeout(() => {
-              if (annotationDiv && document.body.contains(annotationDiv)) {
-                annotationDiv.style.display = 'flex';
-                annotationDiv.style.opacity = '1';
+            try {
+              // Restore original z-index
+              annotationDiv.style.zIndex = initialZIndex;
+              
+              annotationDiv.classList.remove('resizing');
+              
+              // Ensure popup stays visible and fully opaque
+              annotationDiv.style.display = 'flex';
+              annotationDiv.style.opacity = '1';
+              annotationDiv.style.visibility = 'visible';
+              
+              // Adjust all child elements to fit the new size
+              const mainView = annotationDiv.querySelector('.main-view');
+              if (mainView) {
+                mainView.style.width = '100%';
+                mainView.style.height = '100%';
               }
-            }, 50);
+              
+              // Adjust content height again to ensure it's correct
+              const header = annotationDiv.querySelector('.modern-popout-header');
+              const content = annotationDiv.querySelector('.modern-popout-body');
+              if (content && header) {
+                const availableHeight = annotationDiv.offsetHeight - header.offsetHeight - 32;
+                content.style.height = `${availableHeight}px`;
+                content.style.overflow = 'auto';
+              }
+              
+              // Adjust fact check view if present
+              const factCheckView = annotationDiv.querySelector('.fact-check-view');
+              if (factCheckView && factCheckView.style.display !== 'none') {
+                factCheckView.style.width = '100%';
+                factCheckView.style.height = '100%';
+                
+                const factCheckContent = factCheckView.querySelector('.fact-check-content');
+                if (factCheckContent) {
+                  const factCheckHeader = factCheckView.querySelector('.fact-check-header');
+                  if (factCheckHeader) {
+                    factCheckContent.style.height = `${annotationDiv.offsetHeight - factCheckHeader.offsetHeight}px`;
+                  }
+                }
+              }
+              
+              // Guarantee visibility after a brief delay (to handle any race conditions)
+              setTimeout(() => {
+                if (annotationDiv && document.body.contains(annotationDiv)) {
+                  annotationDiv.style.display = 'flex';
+                  annotationDiv.style.opacity = '1';
+                  annotationDiv.style.visibility = 'visible';
+                }
+              }, 100);
+            } catch (error) {
+              console.error('Error during resize completion:', error);
+            }
           }
         };
 
