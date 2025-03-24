@@ -1,26 +1,26 @@
-# Bobby - Your Reading Buddy 🤖
+# Plumage: Elevate Your Reading
 
-A browser extension that makes reading and understanding content easier. Like Clippy, but actually helpful! Bobby sits quietly in your browser until you need help understanding something - just highlight text to get instant explanations and insights.
+A powerful browser extension that enhances your online reading experience with AI-powered insights. Highlight any text to receive instant explanations, summaries, and analysis - making complex content accessible with just a click.
 
-## Features 🌟
+## Features
 
-- **Quick Explanations**: Highlight any text to get instant, AI-powered explanations
-- **Multiple Explanation Modes**:
-  - Simple Explanation
-  - ELI5 (Explain Like I'm 5)
+- **Smart Analysis**: Highlight any text for immediate AI-powered insights
+- **Multiple Analysis Modes**:
+  - Clear Explanation
+  - Simplified Breakdown
   - Key Points
-  - Real-World Examples
+  - Practical Examples
   - Pros & Cons
-  - Next Steps
-  - Related Reading
-  - Summarize
-- **Fact Checking**: Verify claims with reliable sources
-- **Follow-up Questions**: Ask questions about the explanations
-- **Dark Mode Support**: Automatic theme switching based on system preferences
-- **Draggable & Resizable**: Position the explanation window wherever you want
-- **History**: Keep track of your past explanations
+  - Further Exploration
+  - Related Topics
+  - Quick Summary
+- **Fact Verification**: Cross-check claims with reliable sources
+- **Follow-up Questions**: Ask questions about your highlighted content
+- **Flexible Interface**: Draggable and resizable explanation window
+- **Dark Mode**: Automatic theme switching based on system preferences
+- **History**: Track and revisit your past explanations
 
-## Installation 🔧
+## Installation
 
 1. Clone this repository:
 ```bash
@@ -29,7 +29,7 @@ git clone https://github.com/yourusername/ai-reader-browser-extension.git
 
 2. Create a `config.js` file in the root directory with your API keys:
 ```javascript
-window.BOBBY_CONFIG = {
+window.PLUMAGE_CONFIG = {
   OPENAI_API_KEY: 'your-openai-api-key',
   EXA_API_KEY: 'your-exa-api-key',
   PPLX_API_KEY: 'your-perplexity-api-key'
@@ -37,69 +37,68 @@ window.BOBBY_CONFIG = {
 ```
 
 3. Load the extension in Chrome:
-   - Open Chrome and go to `chrome://extensions/`
+   - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked"
    - Select the extension directory
 
-## Usage 💡
+## Usage
 
-1. Highlight any text on a webpage
-2. Click the "Explain" button that appears
-3. Choose your preferred explanation mode
-4. Read the AI-generated explanation
-5. Use follow-up questions or fact-checking as needed
+1. Highlight text on any webpage
+2. Click the Plumage button that appears
+3. Select your preferred analysis mode
+4. Review the AI-generated insights
+5. Use follow-up questions or verification as needed
 
-## Tech Stack 🛠️
+## Technical Architecture
 
-- Vanilla JavaScript with modular architecture
-- CSS3 with modern features
-- OpenAI GPT API
-- Exa API for fact-checking and research
-- Perplexity API for enhanced responses
+- Modular JavaScript architecture for maintainability
+- Modern CSS with responsive design
+- Integration with multiple AI APIs:
+  - OpenAI GPT for content analysis
+  - Exa for source verification
+  - Perplexity for enhanced responses
 
-### Modular Architecture
+### Core Modules
 
-Bobby uses a modular architecture to improve maintainability and organization:
+- `PromptManager.js`: Template and context management
+- `ButtonManager.js`: UI interaction elements
+- `UIComponents.js`: Consistent interface components
+- `APIClient.js`: Unified API communication layer
+- `ModuleInitializer.js`: System initialization and compatibility
 
-- `components/modules/PromptManager.js`: Manages prompt templates and types
-- `components/modules/ButtonManager.js`: Handles button creation and styling
-- `components/modules/UIComponents.js`: Reusable UI elements
-- `components/modules/APIClient.js`: Centralizes API communication
-- `components/ModuleInitializer.js`: Provides backward compatibility
+## Security
 
-## Security 🔒
+- API keys are securely stored locally
+- All API requests use encrypted connections
+- No user data collection beyond local storage requirements
 
-- API keys are stored securely and never exposed
-- All API requests are made through secure channels
-- No user data is collected or stored externally
-
-## Contributing 🤝
+## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b feature/NewFeature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/NewFeature`)
 5. Open a Pull Request
 
-## License 📄
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments 👏
+## Acknowledgments
 
-- OpenAI for their powerful GPT API
-- Exa for their research and fact-checking capabilities
-- Perplexity for enhanced response generation
+- OpenAI for their GPT technology
+- Exa for their research and verification capabilities
+- Perplexity for advanced response generation
 
-## Privacy Policy 🔐
+## Privacy Policy
 
-Bobby respects your privacy:
-- No data collection beyond what's necessary for functionality
+Plumage respects your privacy:
+- Minimal data collection, limited to functional requirements
 - No tracking or analytics
-- All processing happens locally where possible
-- API calls are made only when explicitly requested
+- Local processing whenever possible
+- API requests only made with explicit user action
 
 ---
 
-Made with ❤️ by [Your Name]
+Developed by Samay Dhawan

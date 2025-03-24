@@ -2,29 +2,23 @@
 
 ## Development
 - **Setup**: Copy `config.example.js` to `config.js` and add your API keys
-- **Testing**: Load unpacked extension in Chrome (chrome://extensions → Load unpacked)
+- **Testing**: Manual testing - load unpacked extension in Chrome (chrome://extensions → Load unpacked)
 - **Debugging**: Use Chrome DevTools (inspect background page or content scripts)
-- **Installation**: Run `npm install` before first use (if dependencies added)
+- **Reload**: After code changes, click "Reload" on chrome://extensions page
 
 ## Code Style
 - **Naming**: camelCase for variables/functions, PascalCase for classes/components
-- **Formatting**: 2-space indentation, semicolons required
+- **Formatting**: 2-space indentation, semicolons required, consistent braces
 - **Imports**: Organize imports by type (core, third-party, local)
 - **Error Handling**: Use try/catch with descriptive messages, always log errors
-- **API Calls**: All external API calls should go through background.js
-- **Types**: Use JSDoc comments for type documentation when appropriate
-- **Components**: Reusable code in `/components` folder, following class pattern
+- **Documentation**: JSDoc comments for functions and complex logic
+- **Types**: Use JSDoc for type annotations (e.g. `@param {string} name`)
+- **Exports**: Use ES module format (export/import) for modular code
 
 ## Project Organization
-- **manifest.json**: Extension configuration (permissions, scripts)
-- **background.js**: API requests, message handling (service worker)
-- **content.js**: DOM manipulation, user interface
-- **components/**: Reusable UI components and functionality
-  - **components/modules/**: Modular code organization
-    - **PromptManager.js**: Manages prompt templates and analysis
-    - **ButtonManager.js**: Button creation and styling
-    - **UIComponents.js**: Reusable UI elements
-    - **APIClient.js**: API communication layer
-  - **components/ModuleInitializer.js**: Compatibility bridge
-- **config.js**: API keys (excluded from git)
-- **State Management**: Use Chrome storage API for persistent settings
+- **background.js**: Service worker for API requests and message handling
+- **content.js**: DOM manipulation and primary user interface
+- **components/**: Reusable UI components and modules
+  - **modules/**: Functional modules with single responsibilities
+- **State Management**: Use Chrome storage API for persistence
+- **API Integration**: All external API calls (OpenAI, Exa, Perplexity) via background.js

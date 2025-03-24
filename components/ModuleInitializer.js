@@ -69,16 +69,16 @@
       // Add appropriate icon based on prompt type
       let iconChar = '';
       switch(promptId) {
-        case 'explain': iconChar = '⚡'; break;
-        case 'eli5': iconChar = '🔄'; break;
-        case 'key-points': iconChar = '⋮'; break;
-        case 'summarize': iconChar = '◯'; break;
-        case 'pros-cons': iconChar = '◆'; break;
-        case 'examples': iconChar = '⧠'; break;
-        case 'technical': iconChar = '∞'; break;
-        case 'fact-check': iconChar = '🔍'; break;
-        case 'analogy': iconChar = '≈'; break;
-        case 'next-steps': iconChar = '→'; break;
+        case 'explain': iconChar = '💡'; break;
+        case 'eli5': iconChar = '🧩'; break;
+        case 'key-points': iconChar = '📌'; break;
+        case 'summarize': iconChar = '📝'; break;
+        case 'pros-cons': iconChar = '⚖️'; break;
+        case 'examples': iconChar = '🔍'; break;
+        case 'technical': iconChar = '⚙️'; break;
+        case 'fact-check': iconChar = '✓'; break;
+        case 'analogy': iconChar = '🔄'; break;
+        case 'next-steps': iconChar = '⏭️'; break;
         case 'related': iconChar = '🔗'; break;
         default: iconChar = '•';
       }

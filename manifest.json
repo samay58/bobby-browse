@@ -51,6 +51,8 @@
     "resources": [
       "styles.css",
       "icon.png",
+      "assets/*.svg",
+      "assets/*.png",
       "components/modules/*.js",
       "components/*.js"
     ],

@@ -179,43 +179,24 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
 
     console.log('Content script loaded!');
     
-    // Function to convert prompt buttons to icon-only with tooltips
+    // We keep text labels now, so this function is modified to just ensure proper layout
     function convertButtonsToIconOnly() {
       // Find all buttons with the class 'prompt-toggle'
       const promptButtons = document.querySelectorAll('.prompt-toggle');
       
       promptButtons.forEach(btn => {
-        // Skip if already processed (has a tooltip)
-        if (btn.querySelector('.prompt-tooltip')) return;
-        
-        // Get the icon and text
+        // Make sure each button has proper structure
         const iconEl = btn.querySelector('.prompt-icon');
         const textEl = btn.querySelector('.prompt-text');
         
         if (iconEl && textEl) {
-          const iconChar = iconEl.textContent;
+          // Just ensure the title attribute is set for accessibility
           const buttonText = textEl.textContent;
-          
-          // Replace button content with just the icon
-          btn.innerHTML = iconChar;
-          
-          // Add native title attribute as fallback
           btn.setAttribute('title', buttonText);
-          
-          // Create tooltip
-          const tooltip = document.createElement('span');
-          tooltip.className = 'prompt-tooltip';
-          tooltip.textContent = buttonText;
-          btn.appendChild(tooltip);
-          
-          // Log tooltip creation for debugging
-          console.log('Added tooltip to button:', buttonText);
         }
       });
       
-      // Check if tooltips were added
-      const tooltipsCount = document.querySelectorAll('.prompt-tooltip').length;
-      console.log('Total tooltips added:', tooltipsCount);
+      console.log('Button display format maintained with text labels');
     }
     
     // Set up a mutation observer to catch dynamically added buttons
@@ -269,7 +250,8 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
       // Initialize global variables
     let annotationDiv = null;
     let fabButton = null;
-      let copyButton = null;
+    let copyButton = null;
+    // isPinned functionality removed
       
       // Use config values after they're loaded
     console.log('Config values:', {
@@ -499,9 +481,11 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         copyButton.innerHTML = '📋 Copy';
         copyButton.style.display = 'none';
         
-          // Add buttons to the header
-          header.appendChild(factCheckButton);
-          header.appendChild(copyButton);
+        // Pin button removed per requirements
+        
+        // Add buttons to the header
+        header.appendChild(factCheckButton);
+        header.appendChild(copyButton);
           
           // Set up copy button click handler
           copyButton.addEventListener('click', () => {
@@ -1064,7 +1048,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
           
             try {
           const icon = document.createElement('img');
-          icon.src = chrome.runtime.getURL('icon.png');
+          icon.src = chrome.runtime.getURL('assets/feather.svg');
           icon.className = 'bobby-icon';
           fabButton.appendChild(icon);
             } catch (iconError) {
@@ -1072,7 +1056,8 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
               console.warn('Failed to load FAB button icon:', iconError);
             }
             
-          fabButton.appendChild(document.createTextNode('Explain'));
+          // Set tooltip for accessibility
+          fabButton.setAttribute('title', 'Quick Explain');
           
           document.body.appendChild(fabButton);
         }
@@ -1289,20 +1274,24 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         case 'key-points':
             return manageResponseLength(`
             <div class="bobby-response key-points">
-              <div class="bobby-header">Key Points</div>
-              <ul class="bobby-list">
-                ${createBulletPoints(content)}
-              </ul>
+              <div class="bobby-section key-points-section">
+                <div class="bobby-header">Key Points</div>
+                <ul class="bobby-list">
+                  ${createBulletPoints(content)}
+                </ul>
+              </div>
             </div>
             `);
         
         case 'eli5':
             return manageResponseLength(`
             <div class="bobby-response eli5">
-              <div class="bobby-header">Simple Explanation</div>
-              <p class="bobby-text">
-                ${sanitizeText(content)}
-              </p>
+              <div class="bobby-section eli5-section">
+                <div class="bobby-header">Simple Explanation</div>
+                <p class="bobby-text">
+                  ${sanitizeText(content)}
+                </p>
+              </div>
             </div>
             `);
         
@@ -1340,23 +1329,27 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
         case 'next-steps':
             return manageResponseLength(`
             <div class="bobby-response next-steps">
-              <div class="bobby-header">Suggested Next Steps</div>
-              <ol class="bobby-list ordered">
-                ${content.split(/\d+\./)
-                  .filter(step => step.trim())
-                  .map(step => `<li>${step.trim()}</li>`)
-                  .join('')}
-              </ol>
+              <div class="bobby-section next-steps-section">
+                <div class="bobby-header">Suggested Next Steps</div>
+                <ol class="bobby-list ordered">
+                  ${content.split(/\d+\./)
+                    .filter(step => step.trim())
+                    .map(step => `<li>${step.trim()}</li>`)
+                    .join('')}
+                </ol>
+              </div>
             </div>
             `);
         
         case 'examples':
             return manageResponseLength(`
             <div class="bobby-response examples">
-              <div class="bobby-header">Real-World Examples</div>
-              <ul class="bobby-list">
-                ${createBulletPoints(content)}
-              </ul>
+              <div class="bobby-section examples-section">
+                <div class="bobby-header">Real-World Examples</div>
+                <ul class="bobby-list">
+                  ${createBulletPoints(content)}
+                </ul>
+              </div>
             </div>
             `);
         
@@ -2305,7 +2298,7 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
             <button class="go-back-button" title="Back to main view">←</button>
             <div class="bobby-header">FACT CHECK</div>
             <div class="powered-by">
-              Powered by Exa
+              Powered by <img src="${chrome.runtime.getURL('assets/exa-logo.png')}" alt="Exa" class="exa-logo">
             </div>
           </div>
           <div class="fact-check-content"></div>

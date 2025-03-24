@@ -182,19 +182,14 @@
 
 .quick-explain-fab {
   position: absolute !important;
-  background: white !important;
-  border: 1px solid #e5e7eb !important;
-  border-radius: 8px !important;
-  padding: 6px 12px !important;
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 13px !important;
-  color: #374151 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
   cursor: pointer !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
   z-index: 2147483646 !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  justify-content: center !important;
   opacity: 0;
   transform: scale(0.95);
   transition: all 0.2s ease !important;
@@ -206,20 +201,15 @@
 }
 
 .quick-explain-fab:hover {
-  background: #f9fafb !important;
-  border-color: #d1d5db !important;
+  transform: scale(1.1) !important;
 }
 
 @media (prefers-color-scheme: dark) {
   .quick-explain-fab {
-    background: #1f2937 !important;
-    border-color: #374151 !important;
-    color: #e5e7eb !important;
+    /* No special styling needed for dark mode since we're using transparent background */
   }
 
-  .quick-explain-fab:hover {
-    background: #374151 !important;
-  }
+  /* No hover background in dark mode */
 }
 
 .modern-popout[data-prompt-type="key-points"] .modern-popout-body {
@@ -317,8 +307,8 @@
 }
 
 .bobby-icon {
-  width: 14px !important;
-  height: 14px !important;
+  width: 28px !important;
+  height: 28px !important;
   object-fit: contain !important;
   flex-shrink: 0 !important;
 }
@@ -383,6 +373,11 @@
   background: #fafafa !important;
 }
 
+.bobby-response.eli5 .eli5-section {
+  background: rgba(99, 102, 241, 0.03) !important;
+  border-color: rgba(99, 102, 241, 0.08) !important;
+}
+
 .bobby-response.eli5 .bobby-text {
   font-size: 16px !important;
   line-height: 1.7 !important;
@@ -398,6 +393,11 @@
 
 .bobby-response.key-points {
   background: #f7fcf7 !important;
+}
+
+.bobby-response.key-points .key-points-section {
+  background: rgba(34, 197, 94, 0.03) !important;
+  border-color: rgba(34, 197, 94, 0.08) !important;
 }
 
 .bobby-response.key-points .bobby-list li {
@@ -423,6 +423,11 @@
   .bobby-response.eli5 {
     background: #1a1f2b !important;
   }
+  
+  .bobby-response.eli5 .eli5-section {
+    background: rgba(99, 102, 241, 0.08) !important;
+    border-color: rgba(99, 102, 241, 0.15) !important;
+  }
 
   .bobby-response.counter {
     background: #1f1a1a !important;
@@ -431,11 +436,25 @@
   .bobby-response.key-points {
     background: #1a231a !important;
   }
+  
+  .bobby-response.key-points .key-points-section {
+    background: rgba(34, 197, 94, 0.08) !important;
+    border-color: rgba(34, 197, 94, 0.15) !important;
+  }
+  
+  .bobby-section {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
 }
 
 /* Add these new styles */
 .bobby-section {
   margin-bottom: 24px !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 .bobby-section:last-child {
@@ -456,6 +475,24 @@
 }
 
 /* Specific prompt styles */
+.bobby-response.pros-cons .pros-section {
+  background: rgba(34, 197, 94, 0.05) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+}
+
+.bobby-response.pros-cons .cons-section {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border: 1px solid rgba(239, 68, 68, 0.1) !important;
+}
+
+.bobby-response.pros-cons .pros-section .bobby-header {
+  color: #15803d !important;
+}
+
+.bobby-response.pros-cons .cons-section .bobby-header {
+  color: #b91c1c !important;
+}
+
 .bobby-response.pros-cons .bobby-list.pros li::before {
   color: #22c55e !important;
 }
@@ -468,6 +505,11 @@
   background: #f8fafc !important;
 }
 
+.bobby-response.next-steps .next-steps-section {
+  background: rgba(20, 184, 166, 0.03) !important;
+  border-color: rgba(20, 184, 166, 0.08) !important;
+}
+
 .bobby-response.next-steps .bobby-list li {
   font-weight: 500 !important;
 }
@@ -476,6 +518,29 @@
 @media (prefers-color-scheme: dark) {
   .bobby-response.next-steps {
     background: #1a202c !important;
+  }
+  
+  .bobby-response.next-steps .next-steps-section {
+    background: rgba(20, 184, 166, 0.08) !important;
+    border-color: rgba(20, 184, 166, 0.15) !important;
+  }
+  
+  .bobby-response.pros-cons .pros-section {
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(34, 197, 94, 0.2) !important;
+  }
+  
+  .bobby-response.pros-cons .cons-section {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+  }
+  
+  .bobby-response.pros-cons .pros-section .bobby-header {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.pros-cons .cons-section .bobby-header {
+    color: #f87171 !important;
   }
   
   .bobby-response.pros-cons .bobby-list.pros li::before {
@@ -508,6 +573,11 @@
 }
 
 /* Add styles for new prompt types */
+.bobby-response.examples .examples-section {
+  background: rgba(249, 115, 22, 0.03) !important;
+  border-color: rgba(249, 115, 22, 0.08) !important;
+}
+
 .bobby-response.examples .bobby-list li {
   padding-bottom: 12px !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
@@ -716,6 +786,11 @@
     color: #d1d5db !important;
   }
 
+  .bobby-response.examples .examples-section {
+    background: rgba(249, 115, 22, 0.08) !important;
+    border-color: rgba(249, 115, 22, 0.15) !important;
+  }
+  
   .bobby-response.examples .bobby-list li {
     background: rgba(99, 102, 241, 0.05) !important;
     border-color: rgba(99, 102, 241, 0.2) !important;
@@ -890,7 +965,7 @@
 }
 
 /* Fact Check Button */
-.fact-check-button {
+.fact-check-button, .pin-button {
   padding: 6px 8px !important;
   border-radius: 6px !important;
   border: 1px solid #e5e7eb !important;
@@ -902,9 +977,15 @@
   margin-left: auto !important;
 }
 
-.fact-check-button:hover {
+.fact-check-button:hover, .pin-button:hover {
   background: #f9fafb !important;
   border-color: #d1d5db !important;
+}
+
+.pin-button.pinned {
+  background: #e0f2ff !important;
+  border-color: #6366f1 !important;
+  color: #4338ca !important;
 }
 
 /* Fact Check Results */
@@ -1291,10 +1372,28 @@
 .exa-logo {
   height: 16px !important;
   width: auto !important;
+  vertical-align: middle !important;
+  margin-left: 4px !important;
 }
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
+  .pin-button {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+  }
+  
+  .pin-button:hover {
+    background: #374151 !important;
+  }
+  
+  .pin-button.pinned {
+    background: #1e375f !important;
+    border-color: #6366f1 !important;
+    color: #a5b4fc !important;
+  }
+  
   .fact-check-view {
     background: #1f2937 !important;
   }
@@ -1932,21 +2031,20 @@
 
 /* Button-based prompt selector styles */
 .prompt-toggle-bar {
-  display: flex !important;
-  justify-content: space-between !important; /* Evenly distribute buttons */
-  flex-direction: row !important;
-  gap: 8px !important; /* Reduced gap to allow more buttons in a row */
-  flex-wrap: nowrap !important; /* Keep buttons in a single row */
-  padding: 12px 16px !important;
-  background-color: #f9fafb !important;
-  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  display: flex !important; /* Use flexbox */
+  flex-wrap: nowrap !important; /* Prevent wrapping */
+  gap: 12px !important; /* Spacing between buttons */
+  padding: 14px 18px !important;
+  background-color: #f0f2f5 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
   margin-top: auto !important; /* Push to bottom of container */
   border-radius: 0 0 12px 12px !important;
   flex-shrink: 0 !important; /* Prevent shrinking */
-  overflow-x: auto !important; /* Allow horizontal scrolling if needed */
+  overflow-x: auto !important; /* Enable horizontal scrolling */
   scrollbar-width: thin !important; /* Thin scrollbar for Firefox */
-  align-items: center !important;
-  width: calc(100% - 32px) !important; /* Full width minus padding */
+  width: 100% !important; /* Full width */
+  box-sizing: border-box !important; /* Include padding in width calculation */
+  white-space: nowrap !important; /* Prevent wrapping of buttons */
 }
 
 .prompt-toggle-bar::-webkit-scrollbar {
@@ -1964,214 +2062,209 @@
 }
 
 .prompt-toggle {
-  width: 34px !important;
-  height: 34px !important;
-  padding: 0 !important;
-  border-radius: 50% !important; /* Circle shape */
-  background: #fff !important;
-  border: 1px solid #e5e7eb !important;
+  min-width: 110px !important; /* Ensure a minimum width */
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  background: white !important;
+  border: 1px solid #e0e3e8 !important;
   color: #374151 !important;
   cursor: pointer !important;
-  transition: all 0.15s ease !important;
-  font-size: 15px !important; /* Slightly larger for icons */
+  transition: all 0.2s ease !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  text-align: center !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  position: relative !important;
-  flex-shrink: 0 !important; /* Prevent button shrinking */
+  gap: 6px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  white-space: normal !important; /* Allow text to wrap if needed */
 }
 
-/* Tooltip styles */
+/* Tooltip styles - rely on native tooltips from title attribute */
 .prompt-tooltip {
-  position: absolute !important;
-  bottom: calc(100% + 8px) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  background-color: #1f2937 !important;
-  color: white !important;
-  padding: 6px 10px !important;
-  border-radius: 4px !important;
-  font-size: 12px !important;
-  font-weight: 400 !important;
-  white-space: nowrap !important;
-  pointer-events: none !important;
-  opacity: 0 !important;
-  transition: opacity 0.2s ease, transform 0.2s ease !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
-  z-index: 10000 !important;
-  visibility: hidden !important;
-  line-height: 1.2 !important;
-}
-
-.prompt-tooltip::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 100% !important;
-  left: 50% !important;
-  margin-left: -5px !important;
-  border-width: 5px !important;
-  border-style: solid !important;
-  border-color: #1f2937 transparent transparent transparent !important;
-}
-
-.prompt-toggle:hover .prompt-tooltip {
-  opacity: 1 !important;
-  transform: translateX(-50%) translateY(-2px) !important;
-  visibility: visible !important;
+  display: none !important;
 }
 
 .prompt-toggle:hover {
-  background: #f9fafb !important;
-  border-color: #6366f1 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px) !important; /* More pronounced lift effect */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important; /* Enhanced shadow on hover */
 }
 
 .prompt-toggle.active {
-  background: #4f46e5 !important;
-  color: #ffffff !important;
-  border-color: #4338ca !important;
+  background: #f0f7ff !important; /* Very light blue background */
+  color: #2563eb !important; /* Vibrant blue text */
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important; /* Blue-tinted shadow */
+  transform: translateY(-2px) !important; /* Same lift as hover */
 }
 
 .prompt-toggle:focus {
   outline: none !important;
-  border-color: #6366f1 !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important; /* Focus ring */
 }
 
-/* Specific colors for different prompt types */
+/* Enhance the icon and text layout */
+.prompt-icon {
+  font-size: 16px !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.prompt-text {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  flex: 1 !important; /* Allow text to take remaining space */
+  text-align: left !important; /* Left-align text */
+}
+
+/* Enhanced styles for different prompt types - using background tints instead of borders */
 .prompt-toggle[data-value="explain"] {
-  color: #3b82f6 !important; /* Blue */
+  background: #ebf5ff !important; /* Light blue */
+  color: #3b82f6 !important;
 }
 
 .prompt-toggle[data-value="eli5"] {
-  color: #f97316 !important; /* Orange */
+  background: #fff7ed !important; /* Light orange */
+  color: #f97316 !important;
 }
 
 .prompt-toggle[data-value="key-points"] {
-  color: #10b981 !important; /* Green */
+  background: #ecfdf5 !important; /* Light green */
+  color: #10b981 !important;
 }
 
 .prompt-toggle[data-value="summarize"] {
-  color: #8b5cf6 !important; /* Purple */
+  background: #f5f3ff !important; /* Light purple */
+  color: #8b5cf6 !important;
 }
 
 .prompt-toggle[data-value="pros-cons"] {
-  color: #ef4444 !important; /* Red */
+  background: #fef2f2 !important; /* Light red */
+  color: #ef4444 !important;
 }
 
 .prompt-toggle[data-value="examples"] {
-  color: #14b8a6 !important; /* Teal */
+  background: #f0fdfa !important; /* Light teal */
+  color: #14b8a6 !important;
 }
 
 .prompt-toggle[data-value="technical"] {
-  color: #6366f1 !important; /* Indigo */
+  background: #eef2ff !important; /* Light indigo */
+  color: #6366f1 !important;
 }
 
 .prompt-toggle[data-value="fact-check"] {
-  color: #f59e0b !important; /* Amber */
+  background: #fffbeb !important; /* Light amber */
+  color: #f59e0b !important;
 }
 
 .prompt-toggle[data-value="analogy"] {
-  color: #ec4899 !important; /* Pink */
+  background: #fdf2f8 !important; /* Light pink */
+  color: #ec4899 !important;
 }
 
 .prompt-toggle[data-value="next-steps"] {
-  color: #06b6d4 !important; /* Cyan */
+  background: #ecfeff !important; /* Light cyan */
+  color: #06b6d4 !important;
+}
+
+/* Active states are handled by the .active class now */
+
+/* No individual active states needed - using global .active class */
+
+/* Responsive adjustments for different popup widths */
+@media (max-width: 320px) {
+  .prompt-toggle-bar {
+    padding: 12px !important; /* Less padding on small screens */
+    gap: 8px !important; /* Smaller gaps on small screens */
+  }
+  
+  .prompt-toggle {
+    min-width: 100px !important; /* Smaller minimum width on small screens */
+    height: 32px !important; /* Slightly shorter buttons */
+    font-size: 12px !important;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
   .prompt-toggle-bar {
-    background-color: #1f2937 !important;
-    border-top-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: #111827 !important; /* Darker background */
+    border-top-color: rgba(255, 255, 255, 0.05) !important;
   }
   
-  .prompt-toggle-bar::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05) !important;
-  }
-  
-  .prompt-toggle-bar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2) !important;
-  }
-  
+  /* Dark mode button styles */
   .prompt-toggle {
-    background: #374151 !important;
-    border-color: #4b5563 !important;
-    color: #e5e7eb !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+    background: #1e293b !important; /* Dark blue-gray */
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    color: #e2e8f0 !important;
   }
   
   .prompt-toggle:hover {
-    background: #4b5563 !important;
-    border-color: #818cf8 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+    background: #2d3748 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
   }
   
   .prompt-toggle.active {
-    background: #6366f1 !important;
-    color: #ffffff !important;
-    border-color: #818cf8 !important;
+    background: #172554 !important; /* Darker blue for active state */
+    color: #93c5fd !important; /* Light blue text */
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.4) !important;
   }
   
-  /* Dark mode tooltips */
-  .prompt-tooltip {
-    background-color: #111827 !important;
-    color: #e5e7eb !important;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
-  }
-  
-  .prompt-tooltip::after {
-    border-color: #111827 transparent transparent transparent !important;
-  }
-  
-  /* Dark mode button colors */
+  /* Dark mode colored buttons */
   .prompt-toggle[data-value="explain"] {
-    color: #60a5fa !important; /* Lighter blue */
+    background: #172554 !important; /* Dark blue */
+    color: #60a5fa !important;
   }
   
   .prompt-toggle[data-value="eli5"] {
-    color: #fb923c !important; /* Lighter orange */
+    background: #7c2d12 !important; /* Dark orange */
+    color: #fdba74 !important;
   }
   
   .prompt-toggle[data-value="key-points"] {
-    color: #34d399 !important; /* Lighter green */
+    background: #064e3b !important; /* Dark green */
+    color: #34d399 !important;
   }
   
   .prompt-toggle[data-value="summarize"] {
-    color: #a78bfa !important; /* Lighter purple */
+    background: #4c1d95 !important; /* Dark purple */
+    color: #c4b5fd !important;
   }
   
   .prompt-toggle[data-value="pros-cons"] {
-    color: #f87171 !important; /* Lighter red */
+    background: #7f1d1d !important; /* Dark red */
+    color: #fca5a5 !important;
   }
   
   .prompt-toggle[data-value="examples"] {
-    color: #2dd4bf !important; /* Lighter teal */
+    background: #134e4a !important; /* Dark teal */
+    color: #5eead4 !important;
   }
   
   .prompt-toggle[data-value="technical"] {
-    color: #818cf8 !important; /* Lighter indigo */
+    background: #312e81 !important; /* Dark indigo */
+    color: #a5b4fc !important;
   }
   
   .prompt-toggle[data-value="fact-check"] {
-    color: #fbbf24 !important; /* Lighter amber */
+    background: #78350f !important; /* Dark amber */
+    color: #fcd34d !important;
   }
   
   .prompt-toggle[data-value="analogy"] {
-    color: #f472b6 !important; /* Lighter pink */
+    background: #831843 !important; /* Dark pink */
+    color: #f9a8d4 !important;
   }
   
   .prompt-toggle[data-value="next-steps"] {
-    color: #22d3ee !important; /* Lighter cyan */
+    background: #155e75 !important; /* Dark cyan */
+    color: #67e8f9 !important;
   }
-  
-  /* Always white text for active buttons in dark mode */
-  .prompt-toggle.active {
-    color: #ffffff !important;
-  }
+}
 } 

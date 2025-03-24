@@ -8,7 +8,7 @@ class PromptManager {
     this.promptTypes = {
       explain: "Explain this text in simple, clear terms that anyone can understand. Break down complex concepts and provide context where needed. Focus on making the content accessible while preserving the key information.",
       
-      eli5: "Explain this text as if talking to a 5-year-old child. Use extremely simple language, short sentences, and child-friendly examples. Avoid complex terminology completely. Make it engaging and easy to understand for someone with no background knowledge.",
+      eli5: "Explain this text as if to someone with no prior knowledge. Use simple, clear language and relatable examples without relying on overly trivial analogies. The explanation should be engaging, practical, and help build a real understanding of the concepts. Avoid jargon while still conveying the core ideas accurately.",
       
       'key-points': "Extract and list the most important key points from this text in bullet-point format. Focus on the main ideas, critical facts, and essential takeaways. Organize points by importance and ensure none of the crucial information is missed.",
       
@@ -171,22 +171,23 @@ class PromptManager {
     // Add appropriate icon based on prompt type
     let iconChar = '';
     switch(promptId) {
-      case 'explain': iconChar = '⚡'; break;
-      case 'eli5': iconChar = '🔄'; break;
-      case 'key-points': iconChar = '⋮'; break;
-      case 'summarize': iconChar = '◯'; break;
-      case 'pros-cons': iconChar = '◆'; break;
-      case 'examples': iconChar = '⧠'; break;
-      case 'technical': iconChar = '∞'; break;
-      case 'fact-check': iconChar = '🔍'; break;
-      case 'analogy': iconChar = '≈'; break;
-      case 'next-steps': iconChar = '→'; break;
+      case 'explain': iconChar = '💡'; break;
+      case 'eli5': iconChar = '🧩'; break;
+      case 'key-points': iconChar = '📌'; break;
+      case 'summarize': iconChar = '📝'; break;
+      case 'pros-cons': iconChar = '⚖️'; break;
+      case 'examples': iconChar = '🔍'; break;
+      case 'technical': iconChar = '⚙️'; break;
+      case 'fact-check': iconChar = '✓'; break;
+      case 'analogy': iconChar = '🔄'; break;
+      case 'next-steps': iconChar = '⏭️'; break;
       case 'related': iconChar = '🔗'; break;
       default: iconChar = '•';
     }
     
-    // Create the button content with icon and text
+    // Create the button content with both icon and text
     btn.innerHTML = `<span class="prompt-icon">${iconChar}</span><span class="prompt-text">${this.prettyNameFor(promptId)}</span>`;
+    // Title attribute already set above for tooltip
     
     // Mark as active if needed
     if (isActive) {
