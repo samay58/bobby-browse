@@ -41,14 +41,53 @@ window.PLUMAGE_CONFIG = {
    - Enable "Developer mode"
    - Click "Load unpacked"
    - Select the extension directory
+   - For PDF support, enable "Allow access to file URLs" in the extension details
 
 ## Usage
 
-1. Highlight text on any webpage
+1. Highlight text on any webpage or PDF document
 2. Click the Plumage button that appears
 3. Select your preferred analysis mode
 4. Review the AI-generated insights
 5. Use follow-up questions or verification as needed
+
+### PDF Support
+
+The extension fully supports PDF documents across various scenarios:
+
+#### Online PDFs
+- Works with Chrome's built-in PDF viewer (including shadow DOM elements)
+- Compatible with PDF.js-based viewers (Mozilla's PDF renderer)
+- Supports embedded PDFs in iframes on websites
+- Handles custom PDF renderers that use standard document classes
+
+#### Local PDFs
+- Open local PDFs directly in Chrome
+- For local PDFs: **Important** - Enable "Allow access to file URLs" in extension settings
+  1. Go to `chrome://extensions/`
+  2. Find the extension
+  3. Click "Details"
+  4. Toggle on "Allow access to file URLs"
+
+#### PDF Features
+- Text selection works identically to web pages
+- All AI features work seamlessly: explanations, summaries, fact-checking, etc.
+- Advanced detection of PDF environments with multi-layered handling:
+  - Chrome's native PDF viewer (including shadow DOM access)
+  - PDF.js viewers with standard elements
+  - Embedded PDFs in iframes and objects
+  - Shadow DOM traversal for latest Chrome PDF implementations
+- Consistent styling and functionality across both web pages and PDFs
+- Popup position intelligently adapts to the PDF viewport
+- Draggable & resizable popups maintain full functionality
+- Performance optimized for large documents with adaptive event handling
+
+#### Troubleshooting PDF Support
+- If selection doesn't work in a specific PDF, try clicking elsewhere in the document first
+- For extremely large PDFs, the extension works best when focused on a single page
+- If using Chrome PDF viewer, ensure it's the latest version
+- For embedded PDFs, try opening in a new tab if selection isn't working
+- To enable debug mode for PDF detection, add `data-debug-pdf` attribute to the HTML tag
 
 ## Technical Architecture
 

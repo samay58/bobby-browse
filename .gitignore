@@ -19,3 +19,4 @@ npm-debug.log*
 # Dependencies
 node_modules/
 .specstory/ 
+**/CLAUDE.local.md

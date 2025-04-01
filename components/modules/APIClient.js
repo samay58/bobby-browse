@@ -92,8 +92,10 @@ class APIClient {
    */
   async sendFollowUpQuestion(question, originalText, apiType = 'openai') {
     try {
+      let rawResponse;
+      
       if (apiType === 'perplexity' && window.BOBBY_CONFIG?.PERPLEXITY_API_KEY) {
-        return await this.sendToPerplexity(question, originalText);
+        rawResponse = await this.sendToPerplexity(question, originalText);
       } else {
         // Default to OpenAI
         const prompt = `Context: "${originalText}"\n\nQuestion: ${question}\n\nPlease answer the question based on the context provided. If the context doesn't contain enough information to answer, say so clearly.`;
@@ -104,12 +106,49 @@ class APIClient {
           { custom: prompt }
         );
         
-        return response.choices[0].message.content;
+        rawResponse = response.choices[0].message.content;
+      }
+      
+      // Clean up citation text
+      const cleanedResponse = this.cleanPartialCitations(rawResponse);
+      
+      // Format the response - if it's long, wrap it in a collapsible container
+      if (cleanedResponse.length > 500) {
+        return `
+          <div class="collapsible-container">
+            <div class="collapsible-content collapsed">
+              ${cleanedResponse}
+            </div>
+            <button class="expand-collapse-btn">Show More</button>
+          </div>
+        `;
+      } else {
+        // For shorter answers, return as is
+        return cleanedResponse;
       }
     } catch (error) {
       console.error('Error sending follow-up question:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Cleans up partial citation patterns from the response text
+   * @param {string} text - The text to clean
+   * @returns {string} Cleaned text
+   */
+  cleanPartialCitations(text) {
+    if (!text) return text;
+    
+    return text
+      // Remove partial "([XYZ](" patterns - like ([CDC](
+      .replace(/\(\[[^\]]+\]\([^)]*\)/g, '')
+      // Remove single leftover "([XYZ]" patterns - like ([Wikipedia]
+      .replace(/\(\[[^\]]+\]/g, '')
+      // Remove any leftover bracketed citations
+      .replace(/\(\[[^\]]*\]?\)/g, '')
+      // Trim extra whitespace
+      .trim();
   }
 
   /**

@@ -22,7 +22,12 @@
     "type": "module"
   },
   "content_scripts": [{
-    "matches": ["<all_urls>"],
+    "matches": [
+      "<all_urls>",
+      "http://*/*.pdf",
+      "https://*/*.pdf",
+      "file://*/*.pdf"
+    ],
     "css": ["styles.css"],
     "js": [
       "config.js",
@@ -45,7 +50,9 @@
   },
   "host_permissions": [
     "https://api.openai.com/*",
-    "https://api.exa.ai/*"
+    "https://api.exa.ai/*",
+    "https://api.perplexity.ai/*",
+    "file:///*"
   ],
   "web_accessible_resources": [{
     "resources": [

@@ -141,7 +141,12 @@ class PromptManager {
     try {
       // We delegate these functions to avoid circular dependencies
       const response = await sendToOpenAIFn(text, promptId);
-      const formattedContent = await formatContentFn(promptId, response.choices[0].message.content, text);
+      let responseContent = response.choices[0].message.content;
+      
+      // Clean up partial citation patterns
+      responseContent = this.cleanPartialCitations(responseContent);
+      
+      const formattedContent = await formatContentFn(promptId, responseContent, text);
       
       // Add to history if a function was provided
       if (addToHistoryFn) {
@@ -153,6 +158,25 @@ class PromptManager {
       console.error('Error handling prompt change:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Cleans up partial citation patterns from the response text
+   * @param {string} text - The text to clean
+   * @returns {string} Cleaned text
+   */
+  cleanPartialCitations(text) {
+    if (!text) return text;
+    
+    return text
+      // Remove partial "([XYZ](" patterns - like ([CDC](
+      .replace(/\(\[[^\]]+\]\([^)]*\)/g, '')
+      // Remove single leftover "([XYZ]" patterns - like ([Wikipedia]
+      .replace(/\(\[[^\]]+\]/g, '')
+      // Remove any leftover bracketed citations
+      .replace(/\(\[[^\]]*\]?\)/g, '')
+      // Trim extra whitespace
+      .trim();
   }
 
   /**
@@ -168,22 +192,8 @@ class PromptManager {
     btn.setAttribute('data-value', promptId);
     btn.setAttribute('title', this.prettyNameFor(promptId));
     
-    // Add appropriate icon based on prompt type
-    let iconChar = '';
-    switch(promptId) {
-      case 'explain': iconChar = '💡'; break;
-      case 'eli5': iconChar = '🧩'; break;
-      case 'key-points': iconChar = '📌'; break;
-      case 'summarize': iconChar = '📝'; break;
-      case 'pros-cons': iconChar = '⚖️'; break;
-      case 'examples': iconChar = '🔍'; break;
-      case 'technical': iconChar = '⚙️'; break;
-      case 'fact-check': iconChar = '✓'; break;
-      case 'analogy': iconChar = '🔄'; break;
-      case 'next-steps': iconChar = '⏭️'; break;
-      case 'related': iconChar = '🔗'; break;
-      default: iconChar = '•';
-    }
+    // Use consistent minimal icon for all prompt types
+    const iconChar = '●'; // Simple dot icon for minimalistic design
     
     // Create the button content with both icon and text
     btn.innerHTML = `<span class="prompt-icon">${iconChar}</span><span class="prompt-text">${this.prettyNameFor(promptId)}</span>`;

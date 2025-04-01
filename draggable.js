@@ -3,11 +3,73 @@ function initDraggable(element, handle) {
   let isDragging = false;
   let startX, startY;
   let elementX, elementY;
+  
+  // Detect if we're in a PDF viewer
+  // This extensive check covers various PDF viewers:
+  // - Chrome's native PDF viewer
+  // - PDF.js (Mozilla's JavaScript PDF renderer)
+  // - Embedded PDFs in iframes
+  // - Custom PDF renderers with standard classes
+  const isPDFViewer = () => {
+    // Check URL patterns first (most reliable for direct PDF views)
+    const urlIsPDF = (
+      window.location.pathname.endsWith('.pdf') ||
+      /chrome-extension:\/\/.*pdfviewer/.test(window.location.href) ||
+      /file:\/\/.*\.pdf/i.test(window.location.href) ||
+      /pdf\.js/i.test(window.location.href)
+    );
+    
+    if (urlIsPDF) return true;
+    
+    // Check for Chrome's built-in PDF viewer elements
+    const hasChromeViewerElements = (
+      document.querySelector('#viewer.pdfViewer') !== null ||
+      document.querySelector('.textLayer') !== null ||
+      document.body.classList.contains('loadingInProgress')
+    );
+    
+    if (hasChromeViewerElements) return true;
+    
+    // Check for embedded PDF objects/embeds
+    const hasEmbeddedPDF = (
+      document.querySelector('embed[type="application/pdf"]') !== null ||
+      document.querySelector('object[type="application/pdf"]') !== null ||
+      document.querySelector('iframe[src*=".pdf"]') !== null
+    );
+    
+    if (hasEmbeddedPDF) return true;
+    
+    // Check for PDF.js specific elements
+    const hasPDFJSElements = (
+      document.querySelector('.pdfViewer') !== null ||
+      document.querySelector('#viewerContainer') !== null ||
+      document.querySelector('#pageContainer') !== null ||
+      document.querySelector('.page[data-page-number]') !== null ||
+      document.querySelector('#pdf-js-viewer') !== null
+    );
+    
+    if (hasPDFJSElements) return true;
+    
+    // Check for common PDF viewer libraries
+    const hasPDFViewerLibrary = (
+      typeof window.PDFViewerApplication !== 'undefined' ||
+      typeof window.PDFJS !== 'undefined' ||
+      typeof window.pdfjsLib !== 'undefined'
+    );
+    
+    return hasPDFViewerLibrary;
+  };
+
+  // Add PDF-specific class if needed
+  if (isPDFViewer()) {
+    element.classList.add('pdf-viewer-popup');
+  }
 
   // Add drag handle to header
   const dragHandle = document.createElement('div');
   dragHandle.className = 'drag-handle';
   dragHandle.innerHTML = '⋮⋮';
+  dragHandle.style.pointerEvents = 'auto'; // Ensure it captures mouse events
   handle.insertBefore(dragHandle, handle.firstChild);
 
   // Allow dragging from the entire header, not just the drag handle

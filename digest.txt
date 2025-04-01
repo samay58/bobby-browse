@@ -1,3 +1,4927 @@
+Directory structure:
+└── /./
+    ├── draggable.js
+    ├── popup.js
+    ├── LICENSE
+    ├── styles.css
+    ├── background.js
+    ├── popup.html
+    ├── options.js
+    ├── config.js
+    ├── CLAUDE.local.md
+    ├── README.md
+    ├── components/
+    │   ├── HallucinationDetector.js
+    │   ├── .DS_Store
+    │   ├── ModuleInitializer.js
+    │   └── modules/
+    │       ├── PromptManager.js
+    │       ├── APIClient.js
+    │       ├── ButtonManager.js
+    │       ├── UIComponents.js
+    │       ├── index.js
+    │       └── ModuleLoader.js
+    ├── history.html
+    ├── history.js
+    ├── manifest.json
+    ├── options.html
+    ├── config.example.js
+    ├── content.js
+    ├── assets/
+    └── CLAUDE.md
+
+================================================
+File: /draggable.js
+================================================
+// Draggable functionality for the popup
+function initDraggable(element, handle) {
+  let isDragging = false;
+  let startX, startY;
+  let elementX, elementY;
+  
+  // Detect if we're in a PDF viewer
+  // This extensive check covers various PDF viewers:
+  // - Chrome's native PDF viewer
+  // - PDF.js (Mozilla's JavaScript PDF renderer)
+  // - Embedded PDFs in iframes
+  // - Custom PDF renderers with standard classes
+  const isPDFViewer = () => {
+    // Check URL patterns first (most reliable for direct PDF views)
+    const urlIsPDF = (
+      window.location.pathname.endsWith('.pdf') ||
+      /chrome-extension:\/\/.*pdfviewer/.test(window.location.href) ||
+      /file:\/\/.*\.pdf/i.test(window.location.href) ||
+      /pdf\.js/i.test(window.location.href)
+    );
+    
+    if (urlIsPDF) return true;
+    
+    // Check for Chrome's built-in PDF viewer elements
+    const hasChromeViewerElements = (
+      document.querySelector('#viewer.pdfViewer') !== null ||
+      document.querySelector('.textLayer') !== null ||
+      document.body.classList.contains('loadingInProgress')
+    );
+    
+    if (hasChromeViewerElements) return true;
+    
+    // Check for embedded PDF objects/embeds
+    const hasEmbeddedPDF = (
+      document.querySelector('embed[type="application/pdf"]') !== null ||
+      document.querySelector('object[type="application/pdf"]') !== null ||
+      document.querySelector('iframe[src*=".pdf"]') !== null
+    );
+    
+    if (hasEmbeddedPDF) return true;
+    
+    // Check for PDF.js specific elements
+    const hasPDFJSElements = (
+      document.querySelector('.pdfViewer') !== null ||
+      document.querySelector('#viewerContainer') !== null ||
+      document.querySelector('#pageContainer') !== null ||
+      document.querySelector('.page[data-page-number]') !== null ||
+      document.querySelector('#pdf-js-viewer') !== null
+    );
+    
+    if (hasPDFJSElements) return true;
+    
+    // Check for common PDF viewer libraries
+    const hasPDFViewerLibrary = (
+      typeof window.PDFViewerApplication !== 'undefined' ||
+      typeof window.PDFJS !== 'undefined' ||
+      typeof window.pdfjsLib !== 'undefined'
+    );
+    
+    return hasPDFViewerLibrary;
+  };
+
+  // Add PDF-specific class if needed
+  if (isPDFViewer()) {
+    element.classList.add('pdf-viewer-popup');
+  }
+
+  // Add drag handle to header
+  const dragHandle = document.createElement('div');
+  dragHandle.className = 'drag-handle';
+  dragHandle.innerHTML = '⋮⋮';
+  dragHandle.style.pointerEvents = 'auto'; // Ensure it captures mouse events
+  handle.insertBefore(dragHandle, handle.firstChild);
+
+  // Allow dragging from the entire header, not just the drag handle
+  dragHandle.addEventListener('mousedown', startDrag);
+  handle.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', drag);
+  document.addEventListener('mouseup', stopDrag);
+
+  function startDrag(e) {
+    e.preventDefault();
+    isDragging = true;
+    window.isDragging = true;
+
+    // Get current element position
+    const rect = element.getBoundingClientRect();
+    elementX = rect.left;
+    elementY = rect.top;
+
+    // Get mouse position
+    startX = e.clientX;
+    startY = e.clientY;
+
+    // Reset any fixed positioning
+    element.style.right = 'auto';
+    element.style.bottom = 'auto';
+    element.style.left = `${elementX}px`;
+    element.style.top = `${elementY}px`;
+
+    // Add dragging class
+    element.classList.add('dragging');
+    dragHandle.style.cursor = 'grabbing';
+  }
+
+  function drag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    // Calculate new position
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const elementRect = element.getBoundingClientRect();
+
+    // Calculate new position with bounds checking
+    let newX = elementX + dx;
+    let newY = elementY + dy;
+
+    // Keep element within viewport
+    newX = Math.max(0, Math.min(newX, viewportWidth - elementRect.width));
+    newY = Math.max(0, Math.min(newY, viewportHeight - elementRect.height));
+
+    // Update element position
+    element.style.left = `${newX}px`;
+    element.style.top = `${newY}px`;
+    
+    // Ensure the element remains visible during drag
+    element.style.display = 'flex';
+    element.style.opacity = '1';
+  }
+
+  function stopDrag() {
+    if (!isDragging) return;
+    
+    isDragging = false;
+    window.isDragging = false;
+    
+    // Remove dragging class
+    element.classList.remove('dragging');
+    dragHandle.style.cursor = 'grab';
+    
+    // Ensure the element remains visible after the drag
+    element.style.display = 'flex';
+    element.style.opacity = '1';
+    
+    // Double-check visibility after a slight delay (handles edge cases)
+    setTimeout(() => {
+      if (element && document.body.contains(element)) {
+        element.style.display = 'flex';
+        element.style.opacity = '1';
+      }
+    }, 50);
+  }
+}
+
+// Export for use in content.js
+window.initDraggable = initDraggable; 
+
+================================================
+File: /popup.js
+================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  const historyDiv = document.getElementById('history');
+  const history = await window.HistoryManager.getHistory();
+
+  if (history.length === 0) {
+    historyDiv.innerHTML = '<p>No history yet. Start highlighting text to get explanations!</p>';
+    return;
+  }
+
+  historyDiv.innerHTML = history.map(item => `
+    <div class="history-item">
+      <div class="timestamp">${window.HistoryManager.formatDate(item.timestamp)}</div>
+      <div class="prompt-type">${item.promptType}</div>
+      <div class="query">${item.query}</div>
+      <div class="response">${item.response}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('clearHistory').addEventListener('click', async () => {
+    await window.HistoryManager.clearHistory();
+    historyDiv.innerHTML = '<p>History cleared!</p>';
+  });
+}); 
+
+================================================
+File: /LICENSE
+================================================
+MIT License
+
+Copyright (c) 2024 [Your Name]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. 
+
+================================================
+File: /styles.css
+================================================
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&display=swap');
+
+/* Custom styles for PDF viewer */
+.quick-explain-fab.pdf-viewer {
+  z-index: 9999999 !important; /* Higher z-index for PDF viewers */
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.12) !important; /* Stronger shadow to stand out */
+  background-color: rgba(32, 33, 36, 0.9) !important; /* More visible background */
+  position: absolute !important; /* Ensure absolute positioning in PDFs */
+  pointer-events: auto !important; /* Guarantee it captures events */
+  transform: scale(1.1) !important; /* Slightly larger for better visibility in PDFs */
+}
+
+/* PDF viewer popup styles */
+.pdf-viewer-popup {
+  z-index: 2147483647 !important; /* Maximum z-index */
+  pointer-events: auto !important; /* Ensure it captures mouse events */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; /* Stronger shadow for PDF */
+  border: 1px solid rgba(0, 0, 0, 0.2) !important; /* More visible border */
+  background-color: #ffffff !important; /* Guaranteed white background */
+  transform: translate3d(0, 0, 0) !important; /* Force GPU acceleration */
+  will-change: transform, opacity !important; /* Optimize for animations */
+  transition: transform 0.2s ease, opacity 0.2s ease !important; /* Smooth transitions */
+  position: fixed !important; /* Ensure fixed positioning */
+}
+
+/* Handle specific PDF.js compatibility */
+body:has(.pdfViewer) .modern-popout,
+body:has(#viewerContainer) .modern-popout,
+body:has(embed[type="application/pdf"]) .modern-popout {
+  isolation: isolate !important; /* Create stacking context */
+  contain: layout !important; /* Improve performance */
+}
+
+.pdf-viewer-popup .drag-handle {
+  cursor: grab !important;
+  pointer-events: auto !important;
+  touch-action: none !important; /* Better touch support */
+}
+
+.pdf-viewer-popup.dragging {
+  opacity: 0.95 !important; /* Slight transparency when dragging */
+  transition: none !important; /* No transition when dragging */
+  cursor: grabbing !important; /* Show grabbing cursor */
+}
+
+.pdf-viewer-popup .modern-popout-header {
+  pointer-events: auto !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  touch-action: none !important; /* Better touch support */
+}
+
+/* PDF indicator styles */
+.pdf-indicator {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Ensure all popup contents are visible in PDF context */
+.pdf-viewer-popup * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Specific fixes for PDF.js iframe scenarios */
+@media print, screen and (min-resolution: 1.5dppx) {
+  .pdf-viewer-popup {
+    transform: scale(1) !important; /* Prevent unwanted scaling */
+  }
+}
+
+.modern-popout {
+  position: fixed !important;
+  right: 2rem !important;
+  max-width: 480px !important;
+  width: 420px !important;
+  background: white !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e0e0e0 !important;
+  border-radius: 8px !important;
+  z-index: 2147483647 !important;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  overflow: hidden !important;
+  opacity: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 500px !important; /* Increased from 400px */
+  -webkit-font-smoothing: antialiased !important;
+  animation: fadeIn 0.2s ease forwards !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modern-popout.visible {
+  transform: scale(1) translate3d(0, 0, 0) !important;
+}
+
+.modern-popout-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 16px !important;
+  background: white !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  cursor: default !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.modern-popout-body {
+  padding: 0 !important;
+  color: #555 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  overflow-y: auto !important;
+  flex: 1 !important; /* Changed from fixed height to flex grow */
+  max-width: 500px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.modern-popout.loading .modern-popout-body {
+  padding: 36px !important; /* Increased from 24px for more breathing room */
+  color: #666 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.modern-popout.loading::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, #f3f3f3, #e0e0e0) !important;
+  animation: loadingBar 1s infinite linear !important;
+}
+
+.modern-popout.error {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.modern-popout.error .modern-popout-body {
+  padding: 16px !important;
+  color: #dc2626 !important;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.prompt-selector {
+  min-width: 140px !important;
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  -webkit-appearance: menulist !important;
+  appearance: menulist !important;
+  position: relative !important;
+  z-index: 1000 !important;
+  box-shadow: none !important;
+  display: inline-block !important;
+  margin-right: 5px !important;
+}
+
+.prompt-selector:hover {
+  border-color: #6366f1 !important;
+  background: white !important;
+}
+
+.prompt-selector:focus {
+  outline: none !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+.copy-button {
+  position: static !important;
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e0e0e0 !important;
+  background: #f8f8f8 !important;
+  color: #333 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+  margin-left: auto !important;
+}
+
+.copy-button:hover {
+  background: #ebebeb !important;
+  border-color: #ccc !important;
+  transform: scale(1.02) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modern-popout {
+    background: #1f2937 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .modern-popout-header {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .modern-popout-body {
+    color: #e5e5e5 !important;
+  }
+  
+  .modern-popout.loading .modern-popout-body {
+    color: #d1d5db !important;
+  }
+  
+  .modern-loading {
+    /* Maintain the increased padding in dark mode */
+    background: rgba(17, 24, 39, 0.7) !important;
+  }
+  
+  .loading-text {
+    color: #9ca3af !important;
+  }
+  
+  .loading-bar {
+    background: #4b5563 !important;
+  }
+  
+  .loading-bar::after {
+    background: #818cf8 !important;
+  }
+
+  .modern-popout.error {
+    background: rgba(40, 20, 20, 0.95) !important;
+    border-color: rgba(220, 38, 38, 0.3) !important;
+  }
+
+  .prompt-selector {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  .prompt-selector:hover {
+    background: #4b5563 !important;
+    border-color: #6366f1 !important;
+  }
+
+  .copy-button {
+    background: #333 !important;
+    border-color: #555 !important;
+    color: #e0e0e0 !important;
+  }
+
+  .copy-button:hover {
+    background: #444 !important;
+    transform: scale(1.02) !important;
+  }
+}
+
+.quick-explain-fab {
+  position: absolute !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  z-index: 2147483646 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.2s ease !important;
+}
+
+.quick-explain-fab.visible {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
+
+.quick-explain-fab:hover {
+  transform: scale(1.1) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .quick-explain-fab {
+    /* No special styling needed for dark mode since we're using transparent background */
+  }
+
+  /* No hover background in dark mode */
+}
+
+.modern-popout[data-prompt-type="key-points"] .modern-popout-body {
+  font-size: 13px !important;
+}
+
+.modern-popout[data-prompt-type="eli5"] .modern-popout-body {
+  font-size: 15px !important;
+  line-height: 1.8 !important;
+}
+
+.modern-popout[data-prompt-type="counter"] .modern-popout-body {
+  font-style: italic !important;
+}
+
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body {
+  font-weight: 400 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body p {
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
+}
+
+.drag-handle {
+  cursor: grab !important;
+  padding: 0 8px !important;
+  color: #999 !important;
+  font-size: 16px !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: none !important;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Add these styles for contextual buttons */
+.context-buttons {
+  padding: 12px 16px !important;
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  background: #f9fafb !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.context-button {
+  flex: 1 !important;
+  min-width: max-content !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.context-button:hover {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .context-buttons {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .context-button {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  .context-button:hover {
+    background: #4b5563 !important;
+  }
+}
+
+/* Add prompt label */
+.prompt-label {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #4b5563 !important;
+  margin-right: auto !important;
+}
+
+.quick-explain-fab svg {
+  flex-shrink: 0 !important;
+}
+
+.bobby-icon {
+  width: 28px !important;
+  height: 28px !important;
+  object-fit: contain !important;
+  flex-shrink: 0 !important;
+}
+
+/* Response formatting */
+.bobby-response {
+  padding: 20px !important;
+  margin-bottom: 0 !important; /* Changed from 20px to allow more space for text */
+  background: white !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  flex: 1 !important; /* Make this element take available space */
+  overflow-y: auto !important; /* Enable scrolling */
+}
+
+.bobby-header {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  margin-bottom: 16px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.3px !important;
+}
+
+.bobby-text {
+  margin: 0 !important;
+  line-height: 1.6 !important;
+  color: #444 !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+}
+
+.bobby-list {
+  margin: 0 !important;
+  padding-left: 24px !important;
+  list-style-type: none !important;
+}
+
+.bobby-list li {
+  position: relative !important;
+  padding-left: 8px !important;
+  margin-bottom: 12px !important;
+  line-height: 1.6 !important;
+  font-size: 15px !important;
+  color: #444 !important;
+}
+
+.bobby-list li:last-child {
+  margin-bottom: 0 !important;
+}
+
+.bobby-list li:before {
+  content: "•" !important;
+  position: absolute !important;
+  left: -12px !important;
+  color: #6366f1 !important;
+}
+
+/* Specific prompt styles */
+.bobby-response.eli5 {
+  background: #fafafa !important;
+}
+
+.bobby-response.eli5 .eli5-section {
+  background: rgba(99, 102, 241, 0.03) !important;
+  border-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+.bobby-response.eli5 .bobby-text {
+  font-size: 16px !important;
+  line-height: 1.7 !important;
+}
+
+.bobby-response.counter {
+  background: #fffafa !important;
+}
+
+.bobby-response.counter .bobby-list li {
+  font-style: italic !important;
+}
+
+.bobby-response.key-points {
+  background: #f7fcf7 !important;
+}
+
+.bobby-response.key-points .key-points-section {
+  background: rgba(34, 197, 94, 0.03) !important;
+  border-color: rgba(34, 197, 94, 0.08) !important;
+}
+
+.bobby-response.key-points .bobby-list li {
+  font-weight: 500 !important;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .bobby-response {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .bobby-header {
+    color: #e5e7eb !important;
+  }
+
+  .bobby-text,
+  .bobby-list li {
+    color: #d1d5db !important;
+  }
+
+  .bobby-response.eli5 {
+    background: #1a1f2b !important;
+  }
+  
+  .bobby-response.eli5 .eli5-section {
+    background: rgba(99, 102, 241, 0.08) !important;
+    border-color: rgba(99, 102, 241, 0.15) !important;
+  }
+
+  .bobby-response.counter {
+    background: #1f1a1a !important;
+  }
+
+  .bobby-response.key-points {
+    background: #1a231a !important;
+  }
+  
+  .bobby-response.key-points .key-points-section {
+    background: rgba(34, 197, 94, 0.08) !important;
+    border-color: rgba(34, 197, 94, 0.15) !important;
+  }
+  
+  .bobby-section {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+/* Add these new styles */
+.bobby-section {
+  margin-bottom: 24px !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.bobby-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+.bobby-list.ordered {
+  list-style-type: decimal !important;
+  padding-left: 32px !important;
+}
+
+.bobby-list.ordered li {
+  padding-left: 8px !important;
+}
+
+.bobby-list.ordered li::before {
+  display: none !important;
+}
+
+/* Specific prompt styles */
+.bobby-response.pros-cons .pros-section {
+  background: rgba(34, 197, 94, 0.05) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+}
+
+.bobby-response.pros-cons .cons-section {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border: 1px solid rgba(239, 68, 68, 0.1) !important;
+}
+
+.bobby-response.pros-cons .pros-section .bobby-header {
+  color: #15803d !important;
+}
+
+.bobby-response.pros-cons .cons-section .bobby-header {
+  color: #b91c1c !important;
+}
+
+.bobby-response.pros-cons .bobby-list.pros li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.pros-cons .bobby-list.cons li::before {
+  color: #ef4444 !important;
+}
+
+.bobby-response.next-steps {
+  background: #f8fafc !important;
+}
+
+.bobby-response.next-steps .next-steps-section {
+  background: rgba(20, 184, 166, 0.03) !important;
+  border-color: rgba(20, 184, 166, 0.08) !important;
+}
+
+.bobby-response.next-steps .bobby-list li {
+  font-weight: 500 !important;
+}
+
+/* Dark mode updates */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.next-steps {
+    background: #1a202c !important;
+  }
+  
+  .bobby-response.next-steps .next-steps-section {
+    background: rgba(20, 184, 166, 0.08) !important;
+    border-color: rgba(20, 184, 166, 0.15) !important;
+  }
+  
+  .bobby-response.pros-cons .pros-section {
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(34, 197, 94, 0.2) !important;
+  }
+  
+  .bobby-response.pros-cons .cons-section {
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+  }
+  
+  .bobby-response.pros-cons .pros-section .bobby-header {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.pros-cons .cons-section .bobby-header {
+    color: #f87171 !important;
+  }
+  
+  .bobby-response.pros-cons .bobby-list.pros li::before {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.pros-cons .bobby-list.cons li::before {
+    color: #f87171 !important;
+  }
+}
+
+.modern-popout.dragging {
+  transition: none !important;
+  user-select: none !important;
+  right: auto !important;
+  bottom: auto !important;
+}
+
+.drag-handle {
+  cursor: grab !important;
+  padding: 0 8px !important;
+  color: #999 !important;
+  font-size: 16px !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.drag-handle:active {
+  cursor: grabbing !important;
+}
+
+/* Add styles for new prompt types */
+.bobby-response.examples .examples-section {
+  background: rgba(249, 115, 22, 0.03) !important;
+  border-color: rgba(249, 115, 22, 0.08) !important;
+}
+
+.bobby-response.examples .bobby-list li {
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.bobby-response.debate .bobby-list.for li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.debate .bobby-list.against li::before {
+  color: #ef4444 !important;
+}
+
+.bobby-papers {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+}
+
+.bobby-paper {
+  padding: 16px !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.bobby-paper-title {
+  color: #4f46e5 !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+
+.bobby-paper-title:hover {
+  text-decoration: underline !important;
+}
+
+.bobby-paper-authors {
+  color: #4b5563 !important;
+  font-size: 13px !important;
+  margin-bottom: 4px !important;
+}
+
+.bobby-paper-date {
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  margin-bottom: 8px !important;
+}
+
+.bobby-paper-highlight {
+  font-size: 13px !important;
+  color: #4b5563 !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  font-style: italic !important;
+}
+
+/* Dark mode updates */
+@media (prefers-color-scheme: dark) {
+  .bobby-paper {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .bobby-paper-title {
+    color: #818cf8 !important;
+  }
+  
+  .bobby-paper-authors {
+    color: #9ca3af !important;
+  }
+  
+  .bobby-paper-date {
+    color: #6b7280 !important;
+  }
+  
+  .bobby-paper-highlight {
+    color: #9ca3af !important;
+  }
+}
+
+/* Debate mode styling */
+.bobby-response.debate .bobby-section {
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+  border-radius: 8px !important;
+}
+
+.bobby-response.debate .for-section {
+  background: rgba(34, 197, 94, 0.05) !important;
+  border: 1px solid rgba(34, 197, 94, 0.1) !important;
+}
+
+.bobby-response.debate .against-section {
+  background: rgba(249, 115, 22, 0.05) !important;
+  border: 1px solid rgba(249, 115, 22, 0.1) !important;
+}
+
+.bobby-response.debate .bobby-header {
+  font-weight: 500 !important;
+  margin-bottom: 12px !important;
+}
+
+.bobby-response.debate .for-section .bobby-header {
+  color: #15803d !important;
+}
+
+.bobby-response.debate .against-section .bobby-header {
+  color: #c2410c !important;
+}
+
+.bobby-response.debate .bobby-list {
+  margin: 0 !important;
+}
+
+.bobby-response.debate .bobby-list li {
+  margin-bottom: 8px !important;
+  line-height: 1.5 !important;
+}
+
+.bobby-response.debate .bobby-list.for li::before {
+  color: #22c55e !important;
+}
+
+.bobby-response.debate .bobby-list.against li::before {
+  color: #f97316 !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.debate .for-section {
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(34, 197, 94, 0.2) !important;
+  }
+  
+  .bobby-response.debate .against-section {
+    background: rgba(249, 115, 22, 0.1) !important;
+    border-color: rgba(249, 115, 22, 0.2) !important;
+  }
+  
+  .bobby-response.debate .for-section .bobby-header {
+    color: #4ade80 !important;
+  }
+  
+  .bobby-response.debate .against-section .bobby-header {
+    color: #fb923c !important;
+  }
+}
+
+/* Technical explanation styling */
+.bobby-response.technical .bobby-text {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: #1a1a1a !important;
+}
+
+.bobby-response.technical .bobby-text p {
+  margin-bottom: 12px !important;
+}
+
+/* Analogy styling */
+.bobby-response.analogies .bobby-analogies {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+}
+
+.bobby-response.analogies .bobby-analogy {
+  padding: 16px !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  border-radius: 8px !important;
+}
+
+.bobby-response.analogies .bobby-analogy p {
+  margin: 0 !important;
+  line-height: 1.6 !important;
+  color: #374151 !important;
+}
+
+/* Examples styling */
+.bobby-response.examples .bobby-list li {
+  background: rgba(99, 102, 241, 0.02) !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  margin-bottom: 16px !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bobby-response.technical .bobby-text {
+    color: #e5e7eb !important;
+  }
+
+  .bobby-response.analogies .bobby-analogy {
+    background: rgba(99, 102, 241, 0.1) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+  }
+
+  .bobby-response.analogies .bobby-analogy p {
+    color: #d1d5db !important;
+  }
+
+  .bobby-response.examples .examples-section {
+    background: rgba(249, 115, 22, 0.08) !important;
+    border-color: rgba(249, 115, 22, 0.15) !important;
+  }
+  
+  .bobby-response.examples .bobby-list li {
+    background: rgba(99, 102, 241, 0.05) !important;
+    border-color: rgba(99, 102, 241, 0.2) !important;
+  }
+}
+
+/* Resizable popup styles */
+.modern-popout.resizable {
+  min-width: 300px !important;
+  min-height: 200px !important;
+  max-width: 800px !important;
+  max-height: 800px !important;
+  transition: none !important;
+  resize: both !important; /* Enable native resizing as backup */
+  overflow: hidden !important;
+}
+
+/* Main view takes full size of container */
+.modern-popout .main-view {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important; /* Prevent overflow */
+}
+
+/* Elegant resize handle */
+.resizer.bottom-right {
+  position: absolute !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  width: 30px !important;
+  height: 30px !important;
+  cursor: se-resize !important;
+  opacity: 0.7 !important;
+  transition: opacity 0.2s ease !important;
+  z-index: 2147483647 !important;
+  background: transparent !important;
+  touch-action: none !important;
+}
+
+.resizer.bottom-right::after {
+  content: '' !important;
+  position: absolute !important;
+  right: 6px !important;
+  bottom: 6px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-right: 3px solid rgba(99, 102, 241, 0.8) !important;
+  border-bottom: 3px solid rgba(99, 102, 241, 0.8) !important;
+  border-radius: 0 0 2px 0 !important;
+}
+
+.modern-popout:hover .resizer.bottom-right {
+  opacity: 1 !important;
+}
+
+.modern-popout.resizing {
+  user-select: none !important;
+  will-change: width, height !important;
+  pointer-events: auto !important; /* Keep pointer events for resize handle */
+}
+
+.modern-popout.resizing .resizer.bottom-right {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .resizer.bottom-right::after {
+    border-color: rgba(99, 102, 241, 0.6) !important;
+  }
+}
+
+/* Collapsible content styles */
+.collapsible-container {
+  position: relative !important;
+  width: 100% !important;
+  transition: max-height 0.3s ease !important;
+  flex: 1 !important; /* Make the container take available space */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.collapsible-content.collapsed {
+  max-height: 350px !important; /* Increased from 300px to show more initial content */
+  overflow: hidden !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+}
+
+.collapsible-content.expanded {
+  max-height: none !important;
+  overflow-y: auto !important; /* Auto scrolling for overflow content */
+  position: relative !important;
+  transition: max-height 0.5s ease, opacity 0.3s ease !important; /* Smoother transition */
+  padding-bottom: 12px !important; /* Added bottom padding for better spacing */
+  scrollbar-width: thin !important; /* Thin scrollbar for Firefox */
+}
+
+/* Webkit scrollbar styling for the expanded content */
+.collapsible-content.expanded::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.collapsible-content.expanded::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 3px !important;
+}
+
+.collapsible-content.expanded::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 3px !important;
+}
+
+.collapsible-content.collapsed::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 80px !important; /* Increased from 60px for a more gradual fade */
+  background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.95)) !important; /* More opaque gradient */
+  pointer-events: none !important;
+  z-index: 1 !important; /* Ensure the gradient appears above the content */
+}
+
+.expand-collapse-btn {
+  display: block !important;
+  margin: 12px auto 8px auto !important; /* Increased top margin */
+  padding: 8px 20px !important; /* Wider button */
+  background-color: #4f46e5 !important;
+  border: none !important;
+  border-radius: 6px !important; /* More rounded corners */
+  color: white !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
+  position: relative !important; /* Changed to relative to avoid sticky positioning issues */
+  align-self: center !important; /* Center in flex container */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important; /* Enhanced shadow */
+  width: fit-content !important;
+}
+
+.expand-collapse-btn:hover {
+  background-color: #3730a3 !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .collapsible-content.collapsed::after {
+    background: linear-gradient(to bottom, rgba(31,41,55,0), rgba(31,41,55,0.95)) !important; /* Using #1f2937 (dark theme background) for better matching */
+  }
+  
+  .expand-collapse-btn {
+    background-color: #6366f1 !important;
+    color: white !important;
+  }
+  
+  .expand-collapse-btn:hover {
+    background-color: #818cf8 !important;
+    color: white !important;
+  }
+  
+  /* Dark mode scrollbar styling */
+  .collapsible-content.expanded::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  .collapsible-content.expanded::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+}
+
+.history-button {
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 8px;
+  color: inherit;
+}
+
+.history-button:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.dark .history-button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Fact Check Button */
+.fact-check-button, .pin-button {
+  padding: 6px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e0e0e0 !important;
+  background: #f8f8f8 !important;
+  color: #333 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease, transform 0.1s ease !important;
+  margin-left: auto !important;
+}
+
+.fact-check-button:hover, .pin-button:hover {
+  background: #ebebeb !important;
+  border-color: #ccc !important;
+  transform: scale(1.02) !important;
+}
+
+.pin-button.pinned {
+  background: #e2e2e2 !important;
+  border-color: #ccc !important;
+  color: #333 !important;
+}
+
+/* Fact Check Results */
+.fact-check-results {
+  padding: 12px !important;
+  max-height: calc(100vh - 120px) !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.fact-check-item {
+  padding: 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.fact-check-item.high-confidence {
+  background: rgb(220 252 231) !important;
+  border-color: rgb(134 239 172) !important;
+}
+
+.fact-check-item.medium-confidence {
+  background: rgb(254 249 195) !important;
+  border-color: rgb(253 224 71) !important;
+}
+
+.fact-check-item.low-confidence {
+  background: rgb(254 226 226) !important;
+  border-color: rgb(252 165 165) !important;
+}
+
+.fact-check-item.false {
+  background: rgb(254 226 226) !important;
+  border-color: rgb(252 165 165) !important;
+}
+
+.fact-check-item.insufficient {
+  background: rgb(243 244 246) !important;
+  border-color: rgb(209 213 219) !important;
+}
+
+.fact-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.confidence {
+  font-size: 12px !important;
+  color: #666 !important;
+}
+
+.claim-text {
+  font-weight: 600 !important;
+  margin: 8px 0 !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.summary {
+  margin: 8px 0 !important;
+  line-height: 1.5 !important;
+  word-break: break-word !important;
+  color: #444 !important;
+  font-size: 14px !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.correction {
+  background: #fff3f3 !important;
+  padding: 12px !important;
+  margin-bottom: 12px !important;
+  border-radius: 4px !important;
+  line-height: 1.5 !important;
+  font-size: 14px !important;
+  white-space: pre-wrap !important;
+  max-width: 100% !important;
+}
+
+.sources {
+  font-size: 12px !important;
+  margin-top: 8px !important;
+  margin-bottom: 0 !important;
+  max-width: 100% !important;
+}
+
+.source-list {
+  margin: 4px 0 0 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.source-link {
+  color: #4f46e5 !important;
+  text-decoration: none !important;
+  display: block !important;
+  font-size: 11px !important;
+  word-break: break-all !important;
+  line-height: 1.4 !important;
+  padding: 4px 0 !important;
+}
+
+.source-link:hover {
+  text-decoration: underline !important;
+}
+
+.text-wrap {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  hyphens: auto !important;
+}
+
+/* Add margin between fact-check and copy buttons */
+.copy-button {
+  margin-left: 8px !important;
+}
+
+/* Utility classes */
+.break-words {
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+.overflow-hidden {
+  overflow: hidden !important;
+}
+
+.truncate {
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap !important;
+}
+
+/* Text colors */
+.text-green-700 {
+  color: rgb(21 128 61) !important;
+}
+
+.text-yellow-700 {
+  color: rgb(161 98 7) !important;
+}
+
+.text-red-700 {
+  color: rgb(185 28 28) !important;
+}
+
+.text-gray-700 {
+  color: rgb(55 65 81) !important;
+}
+
+/* Add spacing between paragraphs but not at the top/bottom */
+.modern-popout[data-prompt-type="summarize"] .modern-popout-body p + p {
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Dark mode border color */
+@media (prefers-color-scheme: dark) {
+  .modern-popout[data-prompt-type="summarize"] .modern-popout-body p + p {
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  }
+}
+
+/* Follow-up UI styles */
+.followup-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.followup-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.followup-title {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+}
+
+.followup-back {
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1 !important;
+  font-size: 13px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.followup-back:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+}
+
+.followup-input {
+  padding: 16px !important;
+  flex-grow: 1 !important;
+}
+
+.followup-textarea {
+  width: 100% !important;
+  min-height: 100px !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  resize: none !important;
+  margin-bottom: 12px !important;
+}
+
+.followup-actions {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 16px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+.followup-submit, .followup-ask-another {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  background: #6366f1 !important;
+  color: white !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.followup-submit:hover, .followup-ask-another:hover {
+  background: #4f46e5 !important;
+}
+
+.followup-cancel {
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  background: #f3f4f6 !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.followup-cancel:hover {
+  background: #e5e7eb !important;
+}
+
+.followup-question {
+  padding: 16px 16px 8px 16px !important;
+  font-size: 14px !important;
+  color: #6b7280 !important;
+}
+
+.followup-answer {
+  padding: 0 16px 16px 16px !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: #374151 !important;
+  position: relative !important;
+  /* Removed fixed max-height and overflow to let collapsible-content handle it */
+}
+
+/* Follow-up answer content styling */
+.followup-answer-content {
+  color: #444 !important;
+  line-height: 1.6 !important;
+  font-size: 14px !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  hyphens: auto !important;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .followup-header {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  .followup-answer-content {
+    color: #e2e8f0 !important;
+  }
+
+  .followup-title {
+    color: #e5e7eb !important;
+  }
+
+  .followup-back {
+    background: rgba(99, 102, 241, 0.2) !important;
+    color: #818cf8 !important;
+  }
+
+  .followup-back:hover {
+    background: rgba(99, 102, 241, 0.25) !important;
+  }
+
+  .followup-textarea {
+    background: #374151 !important;
+    border-color: #4b5563 !important;
+    color: #e5e7eb !important;
+  }
+
+  .followup-actions {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .followup-cancel {
+    background: #374151 !important;
+    color: #e5e7eb !important;
+  }
+
+  .followup-cancel:hover {
+    background: #4b5563 !important;
+  }
+
+  .followup-question {
+    color: #9ca3af !important;
+  }
+
+  .followup-answer {
+    color: #e5e7eb !important;
+  }
+}
+
+/* Fact Check View Styles */
+.fact-check-view {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  width: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  background: white !important;
+  z-index: 2 !important;
+}
+
+.fact-check-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  background: white !important;
+}
+
+.fact-check-content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 16px !important;
+}
+
+.go-back-button {
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1 !important;
+  font-size: 13px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.go-back-button:hover {
+  background: rgba(99, 102, 241, 0.15) !important;
+}
+
+.powered-by {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
+.exa-logo {
+  height: 16px !important;
+  width: auto !important;
+  vertical-align: middle !important;
+  margin-left: 4px !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .pin-button {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+  }
+  
+  .pin-button:hover {
+    background: #374151 !important;
+  }
+  
+  .pin-button.pinned {
+    background: #1e375f !important;
+    border-color: #6366f1 !important;
+    color: #a5b4fc !important;
+  }
+  
+  .fact-check-view {
+    background: #1f2937 !important;
+  }
+
+  .fact-check-header {
+    background: #1f2937 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .go-back-button {
+    background: rgba(99, 102, 241, 0.2) !important;
+    color: #818cf8 !important;
+  }
+
+  .go-back-button:hover {
+    background: rgba(99, 102, 241, 0.25) !important;
+  }
+
+  .powered-by {
+    color: #9ca3af !important;
+  }
+}
+
+/* Loading animation for fact check */
+.modern-loading {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 50px 40px !important; /* Increased from 40px 32px for more breathing room */
+  text-align: center !important;
+}
+
+.loading-text {
+  color: #6b7280 !important;
+  font-size: 14px !important;
+  margin: 12px 0 24px 0 !important; /* Added top margin for better spacing */
+}
+
+.loading-bar {
+  width: 200px !important;
+  height: 2px !important;
+  background: #e5e7eb !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.loading-bar::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 40% !important;
+  height: 100% !important;
+  background: #6366f1 !important;
+  animation: loading 1s infinite ease !important;
+}
+
+@keyframes loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+/* Citation styles */
+.citations-block {
+  margin-top: 16px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  line-height: 1.4 !important;
+}
+
+.citations-title {
+  font-weight: 500 !important;
+  margin-bottom: 8px !important;
+  color: #4b5563 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.citations-list {
+  list-style: none !important;
+  padding-left: 0 !important;
+  margin: 0 !important;
+}
+
+.citation-item {
+  margin-bottom: 6px !important;
+  display: flex !important;
+  gap: 6px !important;
+  align-items: baseline !important;
+}
+
+.citation-number {
+  display: inline-block !important;
+  font-size: 12px !important;
+  color: #4f46e5 !important;
+  margin-right: 4px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+
+.citation-link {
+  color: #4f46e5 !important;
+  text-decoration: none !important;
+  font-size: 13px !important;
+  transition: color 0.2s !important;
+  display: inline-block !important;
+  max-width: calc(100% - 30px) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.citation-link:hover {
+  color: #3730a3 !important;
+  text-decoration: underline !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .citations-block {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .citations-title {
+    color: #9ca3af !important;
+  }
+
+  .citation-number {
+    color: #818cf8 !important;
+  }
+
+  .citation-link {
+    color: #818cf8 !important;
+  }
+
+  .citation-link:hover {
+    color: #a5b4fc !important;
+  }
+}
+
+/* Citation tooltip styles */
+.citation-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.citation-tooltip .tooltip-content {
+  visibility: hidden;
+  width: 300px;
+  background-color: #fff;
+  color: #333;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 9999;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 150%;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow: visible !important;
+  max-width: 300px !important;
+  white-space: normal !important;
+}
+
+.citation-tooltip .tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent;
+  z-index: 9999;
+}
+
+.citation-tooltip:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip-title {
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #1a73e8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tooltip-snippet {
+  margin-bottom: 6px;
+  max-height: 100px;
+  overflow-y: auto;
+  color: #555;
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
+  padding: 2px;
+}
+
+.tooltip-url {
+  font-size: 11px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .citation-tooltip .tooltip-content {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .citation-tooltip .tooltip-content::after {
+    border-color: #2d3748 transparent transparent transparent;
+  }
+  
+  .tooltip-title {
+    color: #63b3ed;
+  }
+  
+  .tooltip-snippet {
+    color: #cbd5e0;
+  }
+  
+  .tooltip-url {
+    color: #a0aec0;
+  }
+  
+  .citation-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Modern Button Group Prompt Selector Styles */
+.custom-prompt-selector {
+  position: relative !important;
+  cursor: pointer !important;
+  margin-right: 12px !important;
+  user-select: none !important;
+  z-index: 10000 !important;
+  display: inline-block !important;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.selected-prompt {
+  padding: 8px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #f9fafb !important;
+  color: #374151 !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+}
+
+.selected-prompt:hover {
+  border-color: #6366f1 !important;
+  background: white !important;
+}
+
+.dropdown-arrow {
+  margin-left: 8px !important;
+  font-size: 10px !important;
+  color: #9ca3af !important;
+  transition: transform 0.2s ease !important;
+}
+
+.custom-prompt-selector:focus .dropdown-arrow,
+.custom-prompt-selector.active .dropdown-arrow {
+  transform: rotate(180deg) !important;
+}
+
+.prompt-options {
+  display: none;
+  position: absolute !important;
+  top: calc(100% + 6px) !important;
+  left: 0 !important;
+  min-width: 180px !important;
+  background: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.1), 0 2px 8px -1px rgba(0, 0, 0, 0.05) !important;
+  z-index: 10001 !important;
+  max-height: min(400px, 80vh) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 6px !important;
+}
+
+.prompt-option {
+  padding: 8px 12px !important;
+  margin: 2px 0 !important;
+  font-size: 13px !important;
+  color: #374151 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  border-radius: 6px !important;
+  font-weight: 400 !important;
+}
+
+.prompt-option:hover {
+  background: #f3f4f6 !important;
+  color: #6366f1 !important;
+}
+
+.prompt-option.active {
+  background: #f0f0ff !important;
+  color: #4f46e5 !important;
+  font-weight: 500 !important;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .selected-prompt {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
+  }
+  
+  .selected-prompt:hover {
+    border-color: #6366f1 !important;
+    background: #2d3748 !important;
+  }
+
+  .dropdown-arrow {
+    color: #9ca3af !important;
+  }
+  
+  .prompt-options {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    box-shadow: 0 4px 15px -1px rgba(0, 0, 0, 0.3), 0 2px 8px -1px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .prompt-option {
+    color: #e5e7eb !important;
+  }
+  
+  .prompt-option:hover {
+    background: #2d3748 !important;
+    color: #818cf8 !important;
+  }
+  
+  .prompt-option.active {
+    background: #2c2a57 !important;
+    color: #a5b4fc !important;
+  }
+}
+
+/* Improve the scrolling for follow-up answers */
+.followup-answer {
+  padding: 10px;
+  margin-bottom: 12px;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 6px;
+}
+
+/* Followup answer inherits scrollbar styles from collapsible-content */
+.followup-answer .collapsible-content.expanded {
+  max-height: none !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+
+.followup-answer .collapsible-content.expanded::-webkit-scrollbar {
+  width: 6px;
+}
+
+.followup-answer .collapsible-content.expanded::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.followup-answer .collapsible-content.expanded::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  .followup-answer {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .followup-answer .collapsible-content.expanded::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .followup-answer .collapsible-content.expanded::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Clean up the citation footnotes styling */
+.citation-marker {
+  font-size: 9px;
+  color: #1a73e8;
+  vertical-align: super;
+  cursor: pointer;
+  position: relative;
+  margin-left: 1px;
+  font-weight: bold;
+  padding: 0 2px;
+  border-radius: 3px;
+  transition: background-color 0.15s;
+  text-decoration: none;
+}
+
+.citation-marker:hover {
+  color: #0d47a1;
+  background-color: rgba(26, 115, 232, 0.1);
+  text-decoration: none;
+}
+
+.citations-footnotes {
+  margin-top: 24px;
+  font-size: 12px;
+  color: #555;
+  padding-bottom: 8px;
+}
+
+.citations-divider {
+  border: 0;
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 15px 0 12px 0;
+}
+
+.citations-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: #555;
+  letter-spacing: 0.02em;
+}
+
+.citations-list {
+  padding-left: 25px;
+  margin: 0;
+  list-style-position: outside;
+}
+
+.citation-item {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  line-height: 1.5;
+  color: #555;
+  position: relative;
+  font-size: 11px;
+}
+
+.citation-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.citation-text {
+  color: #333;
+  font-weight: 500;
+  display: inline-block;
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citation-link {
+  color: #1a73e8;
+  font-size: 10px;
+  text-decoration: none;
+  word-break: break-all;
+  display: inline-block;
+  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.8;
+}
+
+.citation-link:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+.citation-tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 3px;
+}
+
+.citation-tooltip .tooltip-content {
+  visibility: hidden;
+  width: 280px;
+  background-color: #fff;
+  color: #333;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 9999;
+  left: 0;
+  bottom: 120%;
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: visible !important;
+  max-width: 280px !important;
+  white-space: normal !important;
+}
+
+.citation-tooltip .tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 10px;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent;
+}
+
+.citation-tooltip:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
+.tooltip-snippet {
+  margin-bottom: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  color: #555;
+}
+
+.tooltip-url {
+  font-size: 10px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Add styles for the citation return links */
+.citation-return-link {
+  display: inline-block;
+  margin-left: 5px;
+  color: #1a73e8;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 3px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.citation-return-link:hover {
+  background-color: rgba(26, 115, 232, 0.1);
+  text-decoration: none;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .citation-marker {
+    color: #63b3ed;
+  }
+  
+  .citation-marker:hover {
+    color: #90cdf4;
+    background-color: rgba(99, 179, 237, 0.2);
+  }
+  
+  .citations-footnotes {
+    color: #cbd5e0;
+  }
+  
+  .citations-divider {
+    background-color: #4a5568;
+  }
+  
+  .citations-title {
+    color: #e2e8f0;
+  }
+
+  .citation-item {
+    color: #cbd5e0;
+  }
+  
+  .citation-text {
+    color: #e2e8f0;
+  }
+  
+  .citation-link {
+    color: #63b3ed;
+  }
+  
+  .citation-tooltip .tooltip-content {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .citation-tooltip .tooltip-content::after {
+    border-color: #2d3748 transparent transparent transparent;
+  }
+  
+  .tooltip-snippet {
+    color: #cbd5e0;
+  }
+  
+  .tooltip-url {
+    color: #a0aec0;
+  }
+  
+  .citation-return-link {
+    color: #63b3ed;
+  }
+  
+  .citation-return-link:hover {
+    background-color: rgba(99, 179, 237, 0.2);
+  }
+}
+
+/* Button-based prompt selector styles */
+.prompt-toggle-bar {
+  display: flex !important; /* Use flexbox */
+  flex-wrap: nowrap !important; /* Keep this to maintain horizontal scrolling */
+  gap: 12px !important; /* Spacing between buttons */
+  padding: 14px 18px !important;
+  background-color: #f0f2f5 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  margin-top: auto !important; /* Push to bottom of container */
+  border-radius: 0 0 12px 12px !important;
+  flex-shrink: 0 !important; /* Prevent shrinking */
+  overflow-x: auto !important; /* Enable horizontal scrolling */
+  scrollbar-width: thin !important; /* Thin scrollbar for Firefox */
+  width: 100% !important; /* Full width */
+  box-sizing: border-box !important; /* Include padding in width calculation */
+  /* white-space: nowrap removed to allow text within buttons to wrap */
+}
+
+.prompt-toggle-bar::-webkit-scrollbar {
+  height: 4px !important; /* Horizontal scrollbar height */
+}
+
+.prompt-toggle-bar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 2px !important;
+}
+
+.prompt-toggle-bar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 2px !important;
+}
+
+.prompt-toggle {
+  min-width: 110px !important; /* Ensure a minimum width */
+  height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  background: white !important;
+  border: 1px solid #e0e3e8 !important;
+  color: #374151 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-size: 12px !important; /* Reduced from 13px */
+  font-weight: 500 !important;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  white-space: normal !important; /* Allow text to wrap if needed */
+  overflow: visible !important; /* Show overflow content */
+  text-overflow: clip !important; /* Don't truncate text */
+}
+
+/* Tooltip styles - rely on native tooltips from title attribute */
+.prompt-tooltip {
+  display: none !important;
+}
+
+.prompt-toggle:hover {
+  transform: translateY(-2px) !important; /* More pronounced lift effect */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important; /* Enhanced shadow on hover */
+}
+
+.prompt-toggle.active {
+  background: #f0f7ff !important; /* Very light blue background */
+  color: #2563eb !important; /* Vibrant blue text */
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important; /* Blue-tinted shadow */
+  transform: translateY(-2px) !important; /* Same lift as hover */
+}
+
+.prompt-toggle:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important; /* Focus ring */
+}
+
+/* Enhance the icon and text layout */
+.prompt-icon {
+  font-size: 16px !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.prompt-text {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  flex: 1 !important; /* Allow text to take remaining space */
+  text-align: left !important; /* Left-align text */
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+/* Enhanced styles for different prompt types - using background tints instead of borders */
+.prompt-toggle[data-value="explain"] {
+  background: #ebf5ff !important; /* Light blue */
+  color: #3b82f6 !important;
+}
+
+.prompt-toggle[data-value="eli5"] {
+  background: #fff7ed !important; /* Light orange */
+  color: #f97316 !important;
+}
+
+.prompt-toggle[data-value="key-points"] {
+  background: #ecfdf5 !important; /* Light green */
+  color: #10b981 !important;
+}
+
+.prompt-toggle[data-value="summarize"] {
+  background: #f5f3ff !important; /* Light purple */
+  color: #8b5cf6 !important;
+}
+
+.prompt-toggle[data-value="pros-cons"] {
+  background: #fef2f2 !important; /* Light red */
+  color: #ef4444 !important;
+}
+
+.prompt-toggle[data-value="examples"] {
+  background: #f0fdfa !important; /* Light teal */
+  color: #14b8a6 !important;
+}
+
+.prompt-toggle[data-value="technical"] {
+  background: #eef2ff !important; /* Light indigo */
+  color: #6366f1 !important;
+}
+
+.prompt-toggle[data-value="fact-check"] {
+  background: #fffbeb !important; /* Light amber */
+  color: #f59e0b !important;
+}
+
+.prompt-toggle[data-value="analogy"] {
+  background: #fdf2f8 !important; /* Light pink */
+  color: #ec4899 !important;
+}
+
+.prompt-toggle[data-value="next-steps"] {
+  background: #ecfeff !important; /* Light cyan */
+  color: #06b6d4 !important;
+}
+
+/* Active states are handled by the .active class now */
+
+/* No individual active states needed - using global .active class */
+
+/* Responsive adjustments for different popup widths */
+@media (max-width: 320px) {
+  .prompt-toggle-bar {
+    padding: 12px !important; /* Less padding on small screens */
+    gap: 8px !important; /* Smaller gaps on small screens */
+  }
+  
+  .prompt-toggle {
+    min-width: 100px !important; /* Smaller minimum width on small screens */
+    height: 32px !important; /* Slightly shorter buttons */
+    font-size: 11px !important; /* Even smaller font on small screens */
+    padding: 0 10px !important; /* Reduce horizontal padding slightly */
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  
+  .prompt-text {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .prompt-toggle-bar {
+    background-color: #111827 !important; /* Darker background */
+    border-top-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  
+  /* Dark mode button styles */
+  .prompt-toggle {
+    background: #1e293b !important; /* Dark blue-gray */
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    color: #e2e8f0 !important;
+  }
+  
+  .prompt-toggle:hover {
+    background: #2d3748 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  .prompt-toggle.active {
+    background: #172554 !important; /* Darker blue for active state */
+    color: #93c5fd !important; /* Light blue text */
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.4) !important;
+  }
+  
+  /* Dark mode colored buttons */
+  .prompt-toggle[data-value="explain"] {
+    background: #172554 !important; /* Dark blue */
+    color: #60a5fa !important;
+  }
+  
+  .prompt-toggle[data-value="eli5"] {
+    background: #7c2d12 !important; /* Dark orange */
+    color: #fdba74 !important;
+  }
+  
+  .prompt-toggle[data-value="key-points"] {
+    background: #064e3b !important; /* Dark green */
+    color: #34d399 !important;
+  }
+  
+  .prompt-toggle[data-value="summarize"] {
+    background: #4c1d95 !important; /* Dark purple */
+    color: #c4b5fd !important;
+  }
+  
+  .prompt-toggle[data-value="pros-cons"] {
+    background: #7f1d1d !important; /* Dark red */
+    color: #fca5a5 !important;
+  }
+  
+  .prompt-toggle[data-value="examples"] {
+    background: #134e4a !important; /* Dark teal */
+    color: #5eead4 !important;
+  }
+  
+  .prompt-toggle[data-value="technical"] {
+    background: #312e81 !important; /* Dark indigo */
+    color: #a5b4fc !important;
+  }
+  
+  .prompt-toggle[data-value="fact-check"] {
+    background: #78350f !important; /* Dark amber */
+    color: #fcd34d !important;
+  }
+  
+  .prompt-toggle[data-value="analogy"] {
+    background: #831843 !important; /* Dark pink */
+    color: #f9a8d4 !important;
+  }
+  
+  .prompt-toggle[data-value="next-steps"] {
+    background: #155e75 !important; /* Dark cyan */
+    color: #67e8f9 !important;
+  }
+}
+} 
+
+================================================
+File: /background.js
+================================================
+let isExtensionActive = true;
+
+chrome.runtime.onSuspend.addListener(() => {
+  isExtensionActive = false;
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (!isExtensionActive) {
+    sendResponse({ success: false, error: 'Extension context invalidated' });
+    return false;
+  }
+
+  console.log('Background received message:', {
+    action: request.action,
+    query: request.query,
+    hasExaKey: request.exaKey ? 'yes' : 'no'
+  });
+
+  if (request.action === "searchExa") {
+    const asyncResponse = async () => {
+      try {
+        console.log('Making Exa API request for query:', request.query);
+        const response = await fetch('https://api.exa.ai/search', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${request.exaKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: request.query,
+            numResults: 5,
+            useAutoprompt: true,
+            type: "auto",
+            contents: {
+              text: {
+                maxCharacters: 2000,
+                includeHtmlTags: false
+              },
+              highlights: {
+                numSentences: 3,
+                highlightsPerUrl: 2
+              }
+            },
+            livecrawl: "always"
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        sendResponse({ success: true, data });
+      } catch (error) {
+        console.error('Exa API Error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    };
+
+    asyncResponse();
+    return true;
+  }
+
+  if (request.action === "perplexityQuery") {
+    const asyncResponse = async () => {
+      try {
+        console.log('Making Perplexity API request:', {
+          hasKey: !!request.pplxKey,
+          keyLength: request.pplxKey?.length,
+          messages: request.messages
+        });
+
+        // Verify the API key format
+        if (!request.pplxKey || !request.pplxKey.startsWith('pplx-')) {
+          throw new Error('Invalid API key format. Key should start with "pplx-"');
+        }
+
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'Authorization': `Bearer ${request.pplxKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: "sonar-pro",
+            messages: request.messages
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Perplexity API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorBody: errorText
+          });
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        sendResponse({ success: true, data });
+      } catch (error) {
+        console.error('Perplexity API Error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    };
+
+    asyncResponse();
+    return true;
+  }
+
+  if (request.action === "exaAnswer") {
+    const asyncResponse = async () => {
+      try {
+        console.log('Making Exa Answer API request:', {
+          query: request.prompt,
+          hasKey: !!request.exaKey
+        });
+
+        const response = await fetch('https://api.exa.ai/answer', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${request.exaKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: request.prompt,
+            model: "exa-pro",
+            text: true
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Exa Answer API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            errorBody: errorText
+          });
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.answer) {
+          throw new Error('Invalid response format from Exa API');
+        }
+
+        sendResponse({ success: true, data });
+      } catch (error) {
+        console.error('Exa Answer API Error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    };
+
+    asyncResponse();
+    return true;
+  }
+
+  if (request.action === "verifyExaClaim") {
+    verifyExaClaim(request.claim, request.context, request.exaKey)
+      .then(data => sendResponse({ success: true, data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep the message channel open for async response
+  }
+});
+
+// Function to verify claims using Exa API
+async function verifyExaClaim(claim, context, apiKey) {
+  const response = await fetch('https://api.exa.ai/verify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      claim: claim,
+      context: context
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Exa API error: ${response.status}`);
+  }
+
+  return await response.json();
+} 
+
+================================================
+File: /popup.html
+================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      width: 400px; 
+      padding: 16px;
+      font-family: 'Geist', sans-serif;
+    }
+    .history-item {
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+    .history-item .timestamp {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .history-item .query {
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .history-item .response {
+      font-size: 13px;
+      color: #374151;
+    }
+    .history-item .prompt-type {
+      font-size: 11px;
+      color: #6366f1;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .clear-history {
+      margin-top: 16px;
+      padding: 8px 16px;
+      border: none;
+      background: #ef4444;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h3>Recent Explanations</h3>
+  <div id="history"></div>
+  <button class="clear-history" id="clearHistory">Clear History</button>
+  <script src="history.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 
+
+================================================
+File: /options.js
+================================================
+// When config.js is loaded, store keys in Chrome storage
+if (window.BOBBY_CONFIG) {
+  chrome.storage.local.set({
+    OPENAI_API_KEY: window.BOBBY_CONFIG.OPENAI_API_KEY,
+    EXA_API_KEY: window.BOBBY_CONFIG.EXA_API_KEY,
+    PPLX_API_KEY: window.BOBBY_CONFIG.PPLX_API_KEY
+  });
+} 
+
+// Add Perplexity API key field to the options form
+document.addEventListener('DOMContentLoaded', () => {
+  // ... existing code ...
+  
+  const pplxKeyInput = document.getElementById('pplx-key');
+  
+  // Load saved settings
+  chrome.storage.sync.get({
+    openaiKey: '',
+    exaKey: '',
+    pplxKey: '',  // Add this line
+    theme: 'auto'
+  }, (items) => {
+    openaiKeyInput.value = items.openaiKey;
+    exaKeyInput.value = items.exaKey;
+    pplxKeyInput.value = items.pplxKey;  // Add this line
+    themeSelect.value = items.theme;
+  });
+
+  // Save settings
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    chrome.storage.sync.set({
+      openaiKey: openaiKeyInput.value.trim(),
+      exaKey: exaKeyInput.value.trim(),
+      pplxKey: pplxKeyInput.value.trim(),  // Add this line
+      theme: themeSelect.value
+    }, () => {
+      // Show success message
+      const status = document.getElementById('status');
+      status.textContent = 'Options saved.';
+      setTimeout(() => {
+        status.textContent = '';
+      }, 2000);
+    });
+  });
+}); 
+
+// Save options to chrome.storage
+function saveOptions() {
+  const openai = document.getElementById('openai').value.trim();
+  const exa = document.getElementById('exa').value.trim();
+  const pplx = document.getElementById('pplx').value.trim();
+
+  chrome.storage.sync.set({
+    OPENAI_API_KEY: openai,
+    EXA_API_KEY: exa,
+    PPLX_API_KEY: pplx
+  }, function() {
+    // Update status to let user know options were saved
+    const status = document.getElementById('status');
+    status.textContent = 'Settings saved!';
+    setTimeout(function() {
+      status.textContent = '';
+    }, 2000);
+  });
+}
+
+// Restore options from chrome.storage
+function restoreOptions() {
+  chrome.storage.sync.get({
+    OPENAI_API_KEY: '',
+    EXA_API_KEY: '',
+    PPLX_API_KEY: ''
+  }, function(items) {
+    document.getElementById('openai').value = items.OPENAI_API_KEY || '';
+    document.getElementById('exa').value = items.EXA_API_KEY || '';
+    document.getElementById('pplx').value = items.PPLX_API_KEY || '';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', restoreOptions);
+document.getElementById('save').addEventListener('click', saveOptions); 
+
+================================================
+File: /config.js
+================================================
+// Initialize config with a promise
+window.BOBBY_CONFIG = null;
+window.configLoaded = new Promise((resolve) => {
+  chrome.storage.sync.get(['OPENAI_API_KEY', 'EXA_API_KEY', 'PPLX_API_KEY'], function(result) {
+    window.BOBBY_CONFIG = {
+      OPENAI_API_KEY: result.OPENAI_API_KEY || '',
+      EXA_API_KEY: result.EXA_API_KEY || '',
+      PPLX_API_KEY: result.PPLX_API_KEY || ''
+    };
+    resolve(window.BOBBY_CONFIG);
+  });
+}); 
+
+================================================
+File: /README.md
+================================================
+# Plumage: Elevate Your Reading
+
+A powerful browser extension that enhances your online reading experience with AI-powered insights. Highlight any text to receive instant explanations, summaries, and analysis - making complex content accessible with just a click.
+
+## Features
+
+- **Smart Analysis**: Highlight any text for immediate AI-powered insights
+- **Multiple Analysis Modes**:
+  - Clear Explanation
+  - Simplified Breakdown
+  - Key Points
+  - Practical Examples
+  - Pros & Cons
+  - Further Exploration
+  - Related Topics
+  - Quick Summary
+- **Fact Verification**: Cross-check claims with reliable sources
+- **Follow-up Questions**: Ask questions about your highlighted content
+- **Flexible Interface**: Draggable and resizable explanation window
+- **Dark Mode**: Automatic theme switching based on system preferences
+- **History**: Track and revisit your past explanations
+
+## Installation
+
+1. Clone this repository:
+```bash
+git clone https://github.com/yourusername/ai-reader-browser-extension.git
+```
+
+2. Create a `config.js` file in the root directory with your API keys:
+```javascript
+window.PLUMAGE_CONFIG = {
+  OPENAI_API_KEY: 'your-openai-api-key',
+  EXA_API_KEY: 'your-exa-api-key',
+  PPLX_API_KEY: 'your-perplexity-api-key'
+};
+```
+
+3. Load the extension in Chrome:
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the extension directory
+   - For PDF support, enable "Allow access to file URLs" in the extension details
+
+## Usage
+
+1. Highlight text on any webpage or PDF document
+2. Click the Plumage button that appears
+3. Select your preferred analysis mode
+4. Review the AI-generated insights
+5. Use follow-up questions or verification as needed
+
+### PDF Support
+
+The extension fully supports PDF documents across various scenarios:
+
+#### Online PDFs
+- Works with Chrome's built-in PDF viewer (including shadow DOM elements)
+- Compatible with PDF.js-based viewers (Mozilla's PDF renderer)
+- Supports embedded PDFs in iframes on websites
+- Handles custom PDF renderers that use standard document classes
+
+#### Local PDFs
+- Open local PDFs directly in Chrome
+- For local PDFs: **Important** - Enable "Allow access to file URLs" in extension settings
+  1. Go to `chrome://extensions/`
+  2. Find the extension
+  3. Click "Details"
+  4. Toggle on "Allow access to file URLs"
+
+#### PDF Features
+- Text selection works identically to web pages
+- All AI features work seamlessly: explanations, summaries, fact-checking, etc.
+- Advanced detection of PDF environments with multi-layered handling:
+  - Chrome's native PDF viewer (including shadow DOM access)
+  - PDF.js viewers with standard elements
+  - Embedded PDFs in iframes and objects
+  - Shadow DOM traversal for latest Chrome PDF implementations
+- Consistent styling and functionality across both web pages and PDFs
+- Popup position intelligently adapts to the PDF viewport
+- Draggable & resizable popups maintain full functionality
+- Performance optimized for large documents with adaptive event handling
+
+#### Troubleshooting PDF Support
+- If selection doesn't work in a specific PDF, try clicking elsewhere in the document first
+- For extremely large PDFs, the extension works best when focused on a single page
+- If using Chrome PDF viewer, ensure it's the latest version
+- For embedded PDFs, try opening in a new tab if selection isn't working
+- To enable debug mode for PDF detection, add `data-debug-pdf` attribute to the HTML tag
+
+## Technical Architecture
+
+- Modular JavaScript architecture for maintainability
+- Modern CSS with responsive design
+- Integration with multiple AI APIs:
+  - OpenAI GPT for content analysis
+  - Exa for source verification
+  - Perplexity for enhanced responses
+
+### Core Modules
+
+- `PromptManager.js`: Template and context management
+- `ButtonManager.js`: UI interaction elements
+- `UIComponents.js`: Consistent interface components
+- `APIClient.js`: Unified API communication layer
+- `ModuleInitializer.js`: System initialization and compatibility
+
+## Security
+
+- API keys are securely stored locally
+- All API requests use encrypted connections
+- No user data collection beyond local storage requirements
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/NewFeature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/NewFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- OpenAI for their GPT technology
+- Exa for their research and verification capabilities
+- Perplexity for advanced response generation
+
+## Privacy Policy
+
+Plumage respects your privacy:
+- Minimal data collection, limited to functional requirements
+- No tracking or analytics
+- Local processing whenever possible
+- API requests only made with explicit user action
+
+---
+
+Developed by Samay Dhawan
+
+================================================
+File: /components/HallucinationDetector.js
+================================================
+window.HallucinationDetector = class HallucinationDetector {
+  constructor(openaiKey, exaKey) {
+    this.openaiKey = openaiKey;
+    this.exaKey = exaKey;
+  }
+
+  async extractClaims(text) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [{
+            role: 'system',
+            content: 'You are a helpful assistant that extracts factual claims from text. Return ONLY a JSON array of objects with "claim" and "original_text" properties. Each object should contain a single factual claim from the text.'
+          }, {
+            role: 'user',
+            content: text
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      // Try to parse as JSON, but handle errors gracefully
+      try {
+        const content = data.choices[0].message.content.trim();
+        console.log("Raw AI response:", content);
+        
+        // Check if the response starts with an error message or doesn't look like JSON
+        if (content.startsWith("I'm sorry") || 
+            content.startsWith("Sorry") || 
+            (!content.includes('{') && !content.includes('[')) ||
+            content.includes("As an AI language model")) {
+          console.log("AI returned a non-JSON response");
+          // Create a default claim about the text
+          return [{
+            claim: "No specific claims could be extracted",
+            original_text: text
+          }];
+        }
+        
+        // Try to extract JSON if it's wrapped in text
+        let jsonStr = content;
+        // Look for JSON array pattern - more robust pattern matching
+        const jsonMatch = content.match(/\[\s*\{.*\}\s*\]/s);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+          console.log("Extracted JSON array from response:", jsonStr);
+        } else {
+          // Try to find any JSON structure
+          const fullJsonMatch = content.match(/(\[|\{).*(\]|\})/s);
+          if (fullJsonMatch) {
+            jsonStr = fullJsonMatch[0];
+            console.log("Extracted possible JSON structure:", jsonStr);
+          }
+        }
+        
+        // Additional sanity check before parsing
+        if (!jsonStr.startsWith('[') && !jsonStr.startsWith('{')) {
+          console.log("Response doesn't start with valid JSON characters");
+          throw new Error('Invalid JSON format');
+        }
+        
+        const claims = JSON.parse(jsonStr);
+        if (!Array.isArray(claims)) {
+          console.log("Parsed result is not an array:", claims);
+          
+          // If we got an object instead of an array, try to convert it
+          if (typeof claims === 'object' && claims !== null) {
+            console.log("Converting object to array");
+            // If it's an object with numbered keys, try to convert to array
+            const possibleArray = Object.values(claims);
+            if (possibleArray.length > 0) {
+              return possibleArray;
+            }
+            // If it has a 'claims' property that's an array, use that
+            if (Array.isArray(claims.claims)) {
+              return claims.claims;
+            }
+          }
+          
+          throw new Error('Expected array of claims from OpenAI');
+        }
+        
+        return claims;
+      } catch (jsonError) {
+        console.error("JSON parsing error:", jsonError);
+        // Return a fallback claim if parsing fails
+        return [{
+          claim: text.length > 100 ? text.substring(0, 100) + "..." : text,
+          original_text: text
+        }];
+      }
+    } catch (error) {
+      console.error('Failed to extract claims:', error);
+      throw error;
+    }
+  }
+
+  async verifyClaim(claim, originalText) {
+    try {
+      // First, search for relevant sources
+      const sources = await this.searchSources(claim);
+      
+      if (!sources || !sources.results || sources.results.length === 0) {
+        return {
+          claim,
+          assessment: "Insufficient Information",
+          confidence: 0,
+          summary: "No reliable sources found to verify this claim.",
+          sources: []
+        };
+      }
+
+      // Then evaluate the claim against the sources
+      const evaluation = await this.evaluateClaim(claim, originalText, sources.results);
+      
+      return {
+        claim,
+        assessment: evaluation.assessment,
+        confidence: evaluation.confidence,
+        summary: evaluation.summary,
+        fixed_text: evaluation.fixed_text,
+        sources: sources.results.map(s => s.url)
+      };
+    } catch (error) {
+      console.error('Failed to verify claim:', error);
+      throw error;
+    }
+  }
+
+  async searchSources(claim) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        action: "searchExa",
+        query: claim,
+        exaKey: this.exaKey
+      }, response => {
+        if (!response) {
+          reject(new Error('No response from background script'));
+          return;
+        }
+        if (response.success) {
+          resolve(response.data);
+        } else {
+          reject(new Error(`Exa API Error: ${response.error}`));
+        }
+      });
+    });
+  }
+
+  async evaluateClaim(claim, originalText, sources) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.openaiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{
+            role: "system",
+            content: "You are a fact-checking assistant. Evaluate the claim against the provided sources and determine if it's true, false, or if there's insufficient information."
+          }, {
+            role: "user",
+            content: `Evaluate this claim against the sources and return a JSON object with exactly these keys:
+              {
+                "assessment": "True" or "False" or "Insufficient Information",
+                "confidence": (number between 0-100),
+                "summary": "brief explanation",
+                "fixed_text": "corrected version if false, otherwise same as original"
+              }
+
+              Claim: ${claim}
+              Original context: ${originalText}
+              Sources: ${JSON.stringify(sources.map(s => ({
+                url: s.url,
+                title: s.title,
+                content: s.text
+              })))}`
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Get raw content
+      const rawContent = data.choices[0].message.content.trim();
+      console.log("Raw evaluateClaim response:", rawContent);
+      
+      // Process the content to extract JSON
+      let jsonContent = rawContent;
+      
+      try {
+        // If content contains markdown code blocks, extract the content inside
+        if (jsonContent.includes("```")) {
+          const codeBlockMatch = jsonContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+          if (codeBlockMatch && codeBlockMatch[1]) {
+            jsonContent = codeBlockMatch[1].trim();
+            console.log("Extracted JSON from code block:", jsonContent);
+          }
+        }
+        
+        // Find and extract JSON object pattern if embedded in other text
+        const jsonMatch = jsonContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonContent = jsonMatch[0];
+          console.log("Extracted JSON object pattern:", jsonContent);
+        }
+        
+        const result = JSON.parse(jsonContent);
+        
+        if (!result.assessment || !result.confidence || !result.summary || !result.fixed_text) {
+          console.log("Missing required fields in result:", result);
+          throw new Error('Invalid response format from OpenAI');
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('JSON parsing error in evaluateClaim:', error);
+        // Return a fallback result instead of throwing
+        return {
+          assessment: "Insufficient Information",
+          confidence: 0,
+          summary: "Could not properly evaluate the claim due to a technical error in parsing the response.",
+          fixed_text: originalText
+        };
+      }
+    } catch (error) {
+      console.error('Error in evaluateClaim:', error);
+      throw error;
+    }
+  }
+} 
+
+================================================
+File: /components/ModuleInitializer.js
+================================================
+/**
+ * ModuleInitializer.js
+ * Loads module functionality in a non-ESM way to maintain compatibility
+ */
+
+// This is a standard JavaScript file (not an ES module)
+// It provides a bridge between the old code and new modular structure
+
+(function() {
+  // Store original functions to maintain compatibility
+  const originalPromptTypes = window.promptTypes || {};
+  const originalPrettyNameFor = window.prettyNameFor;
+  const originalSendToOpenAI = window.sendToOpenAI;
+  const originalConvertButtonsToIconOnly = window.convertButtonsToIconOnly;
+  
+  // Create module containers
+  window.Bobby = window.Bobby || {};
+  window.Bobby.modules = {};
+  
+  // PromptManager functionality
+  window.Bobby.modules.promptManager = {
+    promptTypes: {
+      explain: "Explain this text in simple, clear terms that anyone can understand. Break down complex concepts and provide context where needed. Focus on making the content accessible while preserving the key information.",
+      
+      eli5: "Explain this text as if talking to a 5-year-old child. Use extremely simple language, short sentences, and child-friendly examples. Avoid complex terminology completely. Make it engaging and easy to understand for someone with no background knowledge.",
+      
+      'key-points': "Extract and list the most important key points from this text in bullet-point format. Focus on the main ideas, critical facts, and essential takeaways. Organize points by importance and ensure none of the crucial information is missed.",
+      
+      examples: "Provide 3-4 concrete, real-world examples that illustrate this concept clearly. For each example, explain how it demonstrates the main idea. Use diverse, relatable scenarios that help show practical applications.",
+      
+      'pros-cons': "Present a balanced analysis of both sides of this topic. List 3-4 clear advantages/benefits and 3-4 disadvantages/limitations, each with a brief explanation. Be objective and thorough in covering different perspectives.",
+      
+      'next-steps': "Suggest 4-5 practical, actionable next steps based on this information. Make recommendations specific, realistic and immediately applicable. Include brief explanations of how each step helps and what outcome to expect.",
+      
+      related: "Identify the most relevant academic papers, research, and publications related to this topic. For each source, provide the title, authors, publication date, and a 1-2 sentence summary of key findings or contributions.",
+      
+      summarize: "Create a concise, comprehensive summary of this text that captures all essential information in roughly 25% of the original length. Maintain the core message while eliminating redundancies and secondary details.",
+      
+      'fact-check': "Thoroughly verify the factual claims in this text and provide evidence for each verification. Identify any potential inaccuracies or misrepresentations. Support your analysis with credible sources where possible.",
+      
+      technical: "Provide a detailed technical explanation with precise terminology and domain-specific language. Assume an expert audience with background knowledge. Include relevant technical concepts, methodologies, frameworks, and technical implications.",
+      
+      analogy: "Explain this concept using 3-4 clear, intuitive analogies or metaphors. For each analogy, explain how it maps to the original concept and helps understand it. Choose analogies from different domains to provide multiple perspectives."
+    },
+    
+    prettyNameFor(promptId) {
+      switch(promptId) {
+        case 'explain': return 'Explain';
+        case 'eli5': return 'Simple Terms';
+        case 'key-points': return 'Key Points';
+        case 'summarize': return 'Summarize';
+        case 'pros-cons': return 'Pros & Cons';
+        case 'examples': return 'Examples';
+        case 'technical': return 'Technical';
+        case 'fact-check': return 'Fact Check';
+        case 'analogy': return 'Analogies';
+        case 'next-steps': return 'Next Steps';
+        case 'related': return 'Related Reading';
+        default: return promptId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      }
+    },
+
+    createPromptButton(promptId, isActive = false, clickHandler) {
+      const btn = document.createElement('button');
+      btn.className = 'prompt-toggle';
+      btn.setAttribute('data-value', promptId);
+      btn.setAttribute('title', this.prettyNameFor(promptId));
+      
+      // Add appropriate icon based on prompt type
+      let iconChar = '';
+      switch(promptId) {
+        case 'explain': iconChar = '💡'; break;
+        case 'eli5': iconChar = '🧩'; break;
+        case 'key-points': iconChar = '📌'; break;
+        case 'summarize': iconChar = '📝'; break;
+        case 'pros-cons': iconChar = '⚖️'; break;
+        case 'examples': iconChar = '🔍'; break;
+        case 'technical': iconChar = '⚙️'; break;
+        case 'fact-check': iconChar = '✓'; break;
+        case 'analogy': iconChar = '🔄'; break;
+        case 'next-steps': iconChar = '⏭️'; break;
+        case 'related': iconChar = '🔗'; break;
+        default: iconChar = '•';
+      }
+      
+      // Create the button content with icon and text
+      btn.innerHTML = `<span class="prompt-icon">${iconChar}</span><span class="prompt-text">${this.prettyNameFor(promptId)}</span>`;
+      
+      // Mark as active if needed
+      if (isActive) {
+        btn.classList.add('active');
+      }
+      
+      // Add click handler if provided
+      if (clickHandler) {
+        btn.addEventListener('click', clickHandler);
+      }
+      
+      return btn;
+    }
+  };
+  
+  // ButtonManager functionality
+  window.Bobby.modules.buttonManager = {
+    observer: null,
+    
+    convertButtonsToIconOnly(buttons) {
+      if (!buttons) {
+        buttons = document.querySelectorAll('.prompt-toggle');
+      }
+      
+      buttons.forEach(button => {
+        // Skip if already processed
+        if (button.classList.contains('icon-only-processed')) return;
+        
+        // Mark as processed to avoid double-processing
+        button.classList.add('icon-only-processed');
+        
+        // Extract text content if available or use data value
+        const buttonText = button.querySelector('.prompt-text')?.textContent || 
+                          button.getAttribute('data-value') || 
+                          button.textContent;
+        
+        // Set tooltip
+        button.setAttribute('title', buttonText);
+        
+        // Add icon-only class
+        button.classList.add('icon-only');
+      });
+    },
+    
+    setupButtonObserver(selector) {
+      // Disconnect existing observer if any
+      if (this.observer) {
+        this.observer.disconnect();
+      }
+      
+      const self = this;
+      
+      // Create a new mutation observer
+      this.observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length) {
+            // Check if any added node matches our selector
+            setTimeout(() => {
+              const addedButtons = document.querySelectorAll(selector);
+              if (addedButtons.length) {
+                self.convertButtonsToIconOnly(addedButtons);
+              }
+            }, 50); // Short delay to ensure DOM is stable
+          }
+        }
+      });
+      
+      // Start observing the document
+      this.observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    }
+  };
+  
+  // APIClient functionality
+  window.Bobby.modules.apiClient = {
+    cache: new Map(),
+    
+    async sendToOpenAI(text, promptType) {
+      try {
+        // Check if config is loaded
+        if (!window.BOBBY_CONFIG?.OPENAI_API_KEY) {
+          throw new Error('OpenAI API key not set. Please set it in the extension options.');
+        }
+        
+        // Use default prompt type if none provided
+        promptType = promptType || 'explain';
+        
+        // Get the prompt template
+        const promptTemplate = window.Bobby.modules.promptManager.promptTypes[promptType] || 
+                              window.Bobby.modules.promptManager.promptTypes['explain'];
+        
+        // Create cache key
+        const cacheKey = `openai:${promptType}:${text}`;
+        
+        // Check cache first
+        if (this.cache.has(cacheKey)) {
+          return this.cache.get(cacheKey);
+        }
+        
+        // Combine template with text
+        const combinedPrompt = `${promptTemplate}\n\nText: "${text}"`;
+        
+        console.log('Sending to OpenAI with prompt type:', promptType);
+        
+        // Send request to OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${window.BOBBY_CONFIG.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful assistant that provides clear, accurate explanations."
+              },
+              {
+                role: "user",
+                content: combinedPrompt
+              }
+            ]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Cache the result
+        this.cache.set(cacheKey, result);
+        
+        return result;
+      } catch (error) {
+        console.error('Error in sendToOpenAI:', error);
+        throw error;
+      }
+    },
+    
+    clearCache() {
+      this.cache.clear();
+    }
+  };
+  
+  // UIComponents functionality
+  window.Bobby.modules.uiComponents = {
+    createLoadingIndicator(message = 'Loading...') {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'loading-indicator';
+      
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      
+      const messageElem = document.createElement('div');
+      messageElem.className = 'loading-message';
+      messageElem.textContent = message;
+      
+      loadingDiv.appendChild(spinner);
+      loadingDiv.appendChild(messageElem);
+      
+      return loadingDiv;
+    }
+  };
+  
+  // Make global exports backward compatible
+  window.promptTypes = window.Bobby.modules.promptManager.promptTypes;
+  window.prettyNameFor = function(promptId) {
+    return window.Bobby.modules.promptManager.prettyNameFor(promptId);
+  };
+  window.createPromptButton = function(promptId, isActive, clickHandler) {
+    return window.Bobby.modules.promptManager.createPromptButton(promptId, isActive, clickHandler);
+  };
+  window.convertButtonsToIconOnly = function(buttons) {
+    window.Bobby.modules.buttonManager.convertButtonsToIconOnly(buttons);
+  };
+  window.sendToOpenAI = function(text, promptType) {
+    return window.Bobby.modules.apiClient.sendToOpenAI(text, promptType);
+  };
+  
+  console.log('Bobby modules initialized via ModuleInitializer');
+})();
+
+================================================
+File: /components/modules/PromptManager.js
+================================================
+/**
+ * PromptManager.js
+ * Handles prompt templates, selection, and processing
+ */
+
+class PromptManager {
+  constructor() {
+    this.promptTypes = {
+      explain: "Explain this text in simple, clear terms that anyone can understand. Break down complex concepts and provide context where needed. Focus on making the content accessible while preserving the key information.",
+      
+      eli5: "Explain this text as if to someone with no prior knowledge. Use simple, clear language and relatable examples without relying on overly trivial analogies. The explanation should be engaging, practical, and help build a real understanding of the concepts. Avoid jargon while still conveying the core ideas accurately.",
+      
+      'key-points': "Extract and list the most important key points from this text in bullet-point format. Focus on the main ideas, critical facts, and essential takeaways. Organize points by importance and ensure none of the crucial information is missed.",
+      
+      examples: "Provide 3-4 concrete, real-world examples that illustrate this concept clearly. For each example, explain how it demonstrates the main idea. Use diverse, relatable scenarios that help show practical applications.",
+      
+      'pros-cons': "Present a balanced analysis of both sides of this topic. List 3-4 clear advantages/benefits and 3-4 disadvantages/limitations, each with a brief explanation. Be objective and thorough in covering different perspectives.",
+      
+      'next-steps': "Suggest 4-5 practical, actionable next steps based on this information. Make recommendations specific, realistic and immediately applicable. Include brief explanations of how each step helps and what outcome to expect.",
+      
+      related: "Identify the most relevant academic papers, research, and publications related to this topic. For each source, provide the title, authors, publication date, and a 1-2 sentence summary of key findings or contributions.",
+      
+      summarize: "Create a concise, comprehensive summary of this text that captures all essential information in roughly 25% of the original length. Maintain the core message while eliminating redundancies and secondary details.",
+      
+      'fact-check': "Thoroughly verify the factual claims in this text and provide evidence for each verification. Identify any potential inaccuracies or misrepresentations. Support your analysis with credible sources where possible.",
+      
+      technical: "Provide a detailed technical explanation with precise terminology and domain-specific language. Assume an expert audience with background knowledge. Include relevant technical concepts, methodologies, frameworks, and technical implications.",
+      
+      analogy: "Explain this concept using 3-4 clear, intuitive analogies or metaphors. For each analogy, explain how it maps to the original concept and helps understand it. Choose analogies from different domains to provide multiple perspectives."
+    };
+  }
+
+  /**
+   * Returns a user-friendly name for a prompt type
+   * @param {string} promptId - The prompt identifier
+   * @returns {string} The formatted display name
+   */
+  prettyNameFor(promptId) {
+    switch(promptId) {
+      case 'explain': return 'Explain';
+      case 'eli5': return 'Simple Terms';
+      case 'key-points': return 'Key Points';
+      case 'summarize': return 'Summarize';
+      case 'pros-cons': return 'Pros & Cons';
+      case 'examples': return 'Examples';
+      case 'technical': return 'Technical';
+      case 'fact-check': return 'Fact Check';
+      case 'analogy': return 'Analogies';
+      case 'next-steps': return 'Next Steps';
+      case 'related': return 'Related Reading';
+      default: return promptId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+  }
+
+  /**
+   * Analyzes text to suggest appropriate prompts
+   * @param {string} text - The text to analyze
+   * @returns {Promise<string[]>} Array of suggested prompt IDs
+   */
+  async analyzeTextForPromptSuggestions(text) {
+    // Count words and determine text characteristics
+    const wordCount = text.trim().split(/\s+/).length;
+    const hasNumbers = /\d+/.test(text);
+    const hasQuestions = /\?/.test(text);
+    const hasBulletPoints = /•|-|\*|[0-9]+\./.test(text);
+    const hasComplex = /([A-Za-z]{12,})|([A-Za-z]+ology)|([A-Za-z]+ization)/.test(text);
+    
+    // Determine potential prompt types based on text characteristics
+    const suggestions = [];
+    
+    // Text length-based suggestions
+    if (wordCount > 100) {
+      suggestions.push('summarize');
+    } else {
+      suggestions.push('explain');
+    }
+    
+    // Content-based suggestions
+    if (hasComplex) {
+      suggestions.push('eli5');
+    }
+    
+    if (hasQuestions) {
+      suggestions.push('key-points');
+    }
+    
+    if (wordCount > 50 && !hasBulletPoints) {
+      suggestions.push('key-points');
+    }
+    
+    // For medium-length texts, suggest pro/cons analysis
+    if (wordCount > 75 && wordCount < 500) {
+      suggestions.push('pros-cons');
+    }
+    
+    // For technical content, suggest examples and analogies
+    if (hasComplex || hasNumbers) {
+      suggestions.push('examples');
+      suggestions.push('analogy');
+    }
+    
+    // Add technical option for longer, complex content
+    if ((hasComplex && wordCount > 100) || (hasNumbers && hasComplex)) {
+      suggestions.push('technical');
+    }
+    
+    // Always include fact-check for any substantial content
+    if (wordCount > 30) {
+      suggestions.push('fact-check');
+    }
+    
+    return suggestions;
+  }
+
+  /**
+   * Determines the most relevant prompts for a given text
+   * @param {string} text - The text to analyze
+   * @returns {Promise<string[]>} Array of relevant prompt IDs
+   */
+  async determineRelevantPrompts(text) {
+    // Get suggested prompts based on text analysis
+    const suggestions = await this.analyzeTextForPromptSuggestions(text);
+    
+    // Always include these core options
+    const corePrompts = ['explain', 'key-points', 'summarize'];
+    
+    // Combine suggestions with core prompts, removing duplicates
+    const allPrompts = [...new Set([...suggestions, ...corePrompts])];
+    
+    // Cap at a reasonable number of prompts (8 max)
+    return allPrompts.slice(0, 8);
+  }
+
+  /**
+   * Handles changing to a new prompt type
+   * @param {string} promptId - The prompt ID to change to
+   * @param {string} text - The text to analyze
+   * @returns {Promise<string>} Formatted content
+   */
+  async handlePromptChange(promptId, text, sendToOpenAIFn, formatContentFn, addToHistoryFn) {
+    try {
+      // We delegate these functions to avoid circular dependencies
+      const response = await sendToOpenAIFn(text, promptId);
+      let responseContent = response.choices[0].message.content;
+      
+      // Clean up partial citation patterns
+      responseContent = this.cleanPartialCitations(responseContent);
+      
+      const formattedContent = await formatContentFn(promptId, responseContent, text);
+      
+      // Add to history if a function was provided
+      if (addToHistoryFn) {
+        await addToHistoryFn(text, formattedContent, promptId);
+      }
+      
+      return formattedContent;
+    } catch (error) {
+      console.error('Error handling prompt change:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Cleans up partial citation patterns from the response text
+   * @param {string} text - The text to clean
+   * @returns {string} Cleaned text
+   */
+  cleanPartialCitations(text) {
+    if (!text) return text;
+    
+    return text
+      // Remove partial "([XYZ](" patterns - like ([CDC](
+      .replace(/\(\[[^\]]+\]\([^)]*\)/g, '')
+      // Remove single leftover "([XYZ]" patterns - like ([Wikipedia]
+      .replace(/\(\[[^\]]+\]/g, '')
+      // Remove any leftover bracketed citations
+      .replace(/\(\[[^\]]*\]?\)/g, '')
+      // Trim extra whitespace
+      .trim();
+  }
+
+  /**
+   * Creates a UI button for a specific prompt type
+   * @param {string} promptId - The prompt identifier
+   * @param {boolean} isActive - Whether the button should be active
+   * @param {Function} clickHandler - Click event handler
+   * @returns {HTMLElement} The button element
+   */
+  createPromptButton(promptId, isActive = false, clickHandler) {
+    const btn = document.createElement('button');
+    btn.className = 'prompt-toggle';
+    btn.setAttribute('data-value', promptId);
+    btn.setAttribute('title', this.prettyNameFor(promptId));
+    
+    // Use consistent minimal icon for all prompt types
+    const iconChar = '●'; // Simple dot icon for minimalistic design
+    
+    // Create the button content with both icon and text
+    btn.innerHTML = `<span class="prompt-icon">${iconChar}</span><span class="prompt-text">${this.prettyNameFor(promptId)}</span>`;
+    // Title attribute already set above for tooltip
+    
+    // Mark as active if needed
+    if (isActive) {
+      btn.classList.add('active');
+    }
+    
+    // Add click handler if provided
+    if (clickHandler) {
+      btn.addEventListener('click', clickHandler);
+    }
+    
+    return btn;
+  }
+
+  /**
+   * Gets a prompt template
+   * @param {string} promptType - The prompt type to retrieve
+   * @returns {string} The prompt template
+   */
+  getPromptTemplate(promptType) {
+    return this.promptTypes[promptType] || this.promptTypes['explain'];
+  }
+}
+
+// Export as both a class and an instance
+export const promptManager = new PromptManager();
+export default promptManager;
+
+================================================
+File: /components/modules/APIClient.js
+================================================
+/**
+ * APIClient.js
+ * Handles API calls to various services (OpenAI, Perplexity, etc.)
+ */
+
+class APIClient {
+  /**
+   * Initialize the API client
+   */
+  constructor() {
+    // Cache for responses
+    this.cache = new Map();
+  }
+
+  /**
+   * Send prompt to OpenAI for processing
+   * @param {string} text - Text to analyze
+   * @param {string} promptType - Type of prompt to use
+   * @param {Object} promptTypes - Object containing prompt templates
+   * @returns {Promise<Object>} API response
+   */
+  async sendToOpenAI(text, promptType, promptTypes) {
+    try {
+      // Check if config is loaded
+      if (!window.BOBBY_CONFIG?.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not set. Please set it in the extension options.');
+      }
+      
+      // Use default prompt type if none provided
+      promptType = promptType || 'explain';
+      
+      // Get the prompt template
+      const promptTemplate = promptTypes[promptType] || promptTypes['explain'];
+      
+      // Create cache key
+      const cacheKey = `openai:${promptType}:${text}`;
+      
+      // Check cache first
+      if (this.cache.has(cacheKey)) {
+        return this.cache.get(cacheKey);
+      }
+      
+      // Combine template with text
+      const combinedPrompt = `${promptTemplate}\n\nText: "${text}"`;
+      
+      console.log('Sending to OpenAI with prompt type:', promptType);
+      
+      // Send request to OpenAI
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.BOBBY_CONFIG.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that provides clear, accurate explanations."
+            },
+            {
+              role: "user",
+              content: combinedPrompt
+            }
+          ]
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Cache the result
+      this.cache.set(cacheKey, result);
+      
+      return result;
+    } catch (error) {
+      console.error('Error in sendToOpenAI:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send a follow-up question using the selected API
+   * @param {string} question - Follow-up question
+   * @param {string} originalText - Original text context
+   * @param {string} apiType - API to use ('openai' or 'perplexity')
+   * @returns {Promise<string>} Response text
+   */
+  async sendFollowUpQuestion(question, originalText, apiType = 'openai') {
+    try {
+      let rawResponse;
+      
+      if (apiType === 'perplexity' && window.BOBBY_CONFIG?.PERPLEXITY_API_KEY) {
+        rawResponse = await this.sendToPerplexity(question, originalText);
+      } else {
+        // Default to OpenAI
+        const prompt = `Context: "${originalText}"\n\nQuestion: ${question}\n\nPlease answer the question based on the context provided. If the context doesn't contain enough information to answer, say so clearly.`;
+        
+        const response = await this.sendToOpenAI(
+          prompt, 
+          'custom',
+          { custom: prompt }
+        );
+        
+        rawResponse = response.choices[0].message.content;
+      }
+      
+      // Clean up citation text
+      const cleanedResponse = this.cleanPartialCitations(rawResponse);
+      
+      // Format the response - if it's long, wrap it in a collapsible container
+      if (cleanedResponse.length > 500) {
+        return `
+          <div class="collapsible-container">
+            <div class="collapsible-content collapsed">
+              ${cleanedResponse}
+            </div>
+            <button class="expand-collapse-btn">Show More</button>
+          </div>
+        `;
+      } else {
+        // For shorter answers, return as is
+        return cleanedResponse;
+      }
+    } catch (error) {
+      console.error('Error sending follow-up question:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Cleans up partial citation patterns from the response text
+   * @param {string} text - The text to clean
+   * @returns {string} Cleaned text
+   */
+  cleanPartialCitations(text) {
+    if (!text) return text;
+    
+    return text
+      // Remove partial "([XYZ](" patterns - like ([CDC](
+      .replace(/\(\[[^\]]+\]\([^)]*\)/g, '')
+      // Remove single leftover "([XYZ]" patterns - like ([Wikipedia]
+      .replace(/\(\[[^\]]+\]/g, '')
+      // Remove any leftover bracketed citations
+      .replace(/\(\[[^\]]*\]?\)/g, '')
+      // Trim extra whitespace
+      .trim();
+  }
+
+  /**
+   * Send query to Perplexity API
+   * @param {string} question - Question to ask
+   * @param {string} context - Context information
+   * @returns {Promise<string>} Response text
+   */
+  async sendToPerplexity(question, context) {
+    try {
+      if (!window.BOBBY_CONFIG?.PERPLEXITY_API_KEY) {
+        throw new Error('Perplexity API key not set. Please set it in the extension options.');
+      }
+      
+      const cacheKey = `perplexity:${question}:${context}`;
+      
+      // Check cache first
+      if (this.cache.has(cacheKey)) {
+        return this.cache.get(cacheKey);
+      }
+      
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.BOBBY_CONFIG.PERPLEXITY_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "sonar-medium-online",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that answers questions based on the provided context."
+            },
+            {
+              role: "user",
+              content: `Context: "${context}"\n\nQuestion: ${question}\n\nPlease answer the question based on the context provided.`
+            }
+          ]
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Perplexity API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      const answerText = result.choices[0].message.content;
+      
+      // Cache the result
+      this.cache.set(cacheKey, answerText);
+      
+      return answerText;
+    } catch (error) {
+      console.error('Error in sendToPerplexity:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check facts using the Exa API or fallback to OpenAI
+   * @param {string} text - Text to fact check
+   * @returns {Promise<Object>} Fact check results
+   */
+  async factCheck(text) {
+    try {
+      // Implement fact checking logic
+      // This would typically involve searching for sources and verifying claims
+      
+      // For now, we'll use a simple OpenAI-based approach
+      const response = await this.sendToOpenAI(
+        text,
+        'fact-check',
+        { 'fact-check': "Thoroughly verify the factual claims in this text and provide evidence for each verification. Identify any potential inaccuracies or misrepresentations. Support your analysis with credible sources where possible." }
+      );
+      
+      return response.choices[0].message.content;
+    } catch (error) {
+      console.error('Error in factCheck:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear the response cache
+   */
+  clearCache() {
+    this.cache.clear();
+  }
+}
+
+// Export as both a class and an instance
+export const apiClient = new APIClient();
+export default apiClient;
+
+================================================
+File: /components/modules/ButtonManager.js
+================================================
+/**
+ * ButtonManager.js
+ * Manages button creation, styling, and event handling
+ */
+
+class ButtonManager {
+  /**
+   * Initialize the button manager
+   */
+  constructor() {
+    // Observer to monitor DOM for dynamically added buttons
+    this.observer = null;
+  }
+
+  /**
+   * Setup mutation observer to convert buttons to icon-only
+   * @param {string} selector - CSS selector for buttons to convert
+   */
+  setupButtonObserver(selector) {
+    // Disconnect existing observer if any
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    // Create a new mutation observer
+    this.observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length) {
+          // Check if any added node matches our selector
+          setTimeout(() => {
+            const addedButtons = document.querySelectorAll(selector);
+            if (addedButtons.length) {
+              this.convertButtonsToIconOnly(addedButtons);
+            }
+          }, 50); // Short delay to ensure DOM is stable
+        }
+      }
+    });
+
+    // Start observing the document
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  /**
+   * Convert text buttons to icon-only buttons with tooltips
+   * @param {NodeList|Array} buttons - Buttons to convert
+   */
+  convertButtonsToIconOnly(buttons) {
+    buttons.forEach(button => {
+      // Skip if already processed
+      if (button.classList.contains('icon-only-processed')) return;
+      
+      // Mark as processed to avoid double-processing
+      button.classList.add('icon-only-processed');
+      
+      // Extract text content if available or use data value
+      const buttonText = button.querySelector('.prompt-text')?.textContent || 
+                         button.getAttribute('data-value') || 
+                         button.textContent;
+      
+      // Set tooltip
+      button.setAttribute('title', buttonText);
+      
+      // Add icon-only class
+      button.classList.add('icon-only');
+    });
+  }
+
+  /**
+   * Create a copy button
+   * @param {Function} clickHandler - Handler for copy action
+   * @returns {HTMLElement} Copy button element
+   */
+  createCopyButton(clickHandler) {
+    const copyButton = document.createElement('button');
+    copyButton.className = 'bobby-copy-button';
+    copyButton.innerHTML = '📋';
+    copyButton.setAttribute('title', 'Copy to clipboard');
+    
+    copyButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      if (clickHandler) {
+        clickHandler();
+      }
+      
+      // Visual feedback
+      const originalText = copyButton.innerHTML;
+      copyButton.innerHTML = '✓';
+      copyButton.classList.add('copied');
+      
+      setTimeout(() => {
+        copyButton.innerHTML = originalText;
+        copyButton.classList.remove('copied');
+      }, 1500);
+    });
+    
+    return copyButton;
+  }
+
+  /**
+   * Create a close button
+   * @param {Function} clickHandler - Handler for close action
+   * @returns {HTMLElement} Close button element
+   */
+  createCloseButton(clickHandler) {
+    const closeButton = document.createElement('button');
+    closeButton.className = 'bobby-close-button';
+    closeButton.innerHTML = '✕';
+    closeButton.setAttribute('title', 'Close');
+    
+    closeButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      
+      if (clickHandler) {
+        clickHandler();
+      }
+    });
+    
+    return closeButton;
+  }
+
+  /**
+   * Creates buttons for contextual actions
+   * @param {Array} actions - Array of action objects
+   * @param {Function} clickHandler - Handler for button clicks
+   * @returns {HTMLElement} Container with buttons
+   */
+  createActionButtons(actions, clickHandler) {
+    const container = document.createElement('div');
+    container.className = 'action-buttons-container';
+    
+    actions.forEach(action => {
+      const button = document.createElement('button');
+      button.className = 'action-button';
+      button.setAttribute('data-action', action.id);
+      button.setAttribute('title', action.description || action.label);
+      button.textContent = action.label;
+      
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (clickHandler) {
+          clickHandler(action.id);
+        }
+      });
+      
+      container.appendChild(button);
+    });
+    
+    return container;
+  }
+}
+
+// Export as both a class and an instance
+export const buttonManager = new ButtonManager();
+export default buttonManager;
+
+================================================
+File: /components/modules/UIComponents.js
+================================================
+/**
+ * UIComponents.js
+ * Reusable UI components and interface elements
+ */
+
+class UIComponents {
+  /**
+   * Creates a collapsible content element
+   * @param {HTMLElement} contentElement - The element containing content
+   * @param {string} headerText - Text to show in the header
+   * @param {boolean} startExpanded - Whether to start expanded
+   * @returns {HTMLElement} The collapsible container element
+   */
+  createCollapsible(contentElement, headerText, startExpanded = false) {
+    const container = document.createElement('div');
+    container.className = 'collapsible-container';
+    
+    // Create header with toggle button
+    const header = document.createElement('div');
+    header.className = 'collapsible-header';
+    header.textContent = headerText;
+    
+    const toggleIcon = document.createElement('span');
+    toggleIcon.className = 'collapsible-toggle';
+    toggleIcon.textContent = startExpanded ? '−' : '+';
+    header.prepend(toggleIcon);
+    
+    // Create content wrapper
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'collapsible-content';
+    contentWrapper.style.display = startExpanded ? 'block' : 'none';
+    contentWrapper.appendChild(contentElement);
+    
+    // Add event listener to toggle
+    header.addEventListener('click', () => {
+      const isExpanded = contentWrapper.style.display !== 'none';
+      contentWrapper.style.display = isExpanded ? 'none' : 'block';
+      toggleIcon.textContent = isExpanded ? '+' : '−';
+    });
+    
+    // Assemble container
+    container.appendChild(header);
+    container.appendChild(contentWrapper);
+    
+    return container;
+  }
+  
+  /**
+   * Creates a loading indicator
+   * @param {string} message - Loading message to display
+   * @returns {HTMLElement} The loading indicator element
+   */
+  createLoadingIndicator(message = 'Loading...') {
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-indicator';
+    
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+    
+    const messageElem = document.createElement('div');
+    messageElem.className = 'loading-message';
+    messageElem.textContent = message;
+    
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(messageElem);
+    
+    return loadingDiv;
+  }
+  
+  /**
+   * Creates a button with standardized styling
+   * @param {string} text - Button text
+   * @param {string} className - Additional CSS class(es)
+   * @param {Function} clickHandler - Click event handler
+   * @returns {HTMLElement} The button element
+   */
+  createButton(text, className = '', clickHandler = null) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.className = `bobby-button ${className}`;
+    
+    if (clickHandler) {
+      button.addEventListener('click', clickHandler);
+    }
+    
+    return button;
+  }
+  
+  /**
+   * Creates an icon button with a tooltip
+   * @param {string} icon - The icon content (text or HTML)
+   * @param {string} tooltip - Tooltip text
+   * @param {string} className - Additional CSS class(es)
+   * @param {Function} clickHandler - Click event handler
+   * @returns {HTMLElement} The button element
+   */
+  createIconButton(icon, tooltip, className = '', clickHandler = null) {
+    const button = document.createElement('button');
+    button.innerHTML = icon;
+    button.className = `bobby-icon-btn ${className}`;
+    button.setAttribute('title', tooltip);
+    
+    if (clickHandler) {
+      button.addEventListener('click', clickHandler);
+    }
+    
+    return button;
+  }
+  
+  /**
+   * Creates a toggle button with on/off state
+   * @param {string} text - Button text
+   * @param {boolean} initialState - Initial toggle state
+   * @param {Function} changeHandler - State change handler
+   * @returns {HTMLElement} The toggle button element
+   */
+  createToggle(text, initialState = false, changeHandler = null) {
+    const container = document.createElement('div');
+    container.className = 'bobby-toggle-container';
+    
+    const label = document.createElement('label');
+    label.className = 'bobby-toggle-label';
+    label.textContent = text;
+    
+    const toggle = document.createElement('input');
+    toggle.type = 'checkbox';
+    toggle.className = 'bobby-toggle';
+    toggle.checked = initialState;
+    
+    const slider = document.createElement('span');
+    slider.className = 'bobby-toggle-slider';
+    
+    if (changeHandler) {
+      toggle.addEventListener('change', () => changeHandler(toggle.checked));
+    }
+    
+    label.appendChild(toggle);
+    label.appendChild(slider);
+    container.appendChild(label);
+    
+    return container;
+  }
+  
+  /**
+   * Creates a tooltip element
+   * @param {HTMLElement} targetElement - Element to attach tooltip to
+   * @param {string} text - Tooltip text
+   * @param {string} position - Tooltip position (top, bottom, left, right)
+   */
+  addTooltip(targetElement, text, position = 'top') {
+    // Set the title attribute for native browser tooltips
+    targetElement.setAttribute('title', text);
+    
+    // Also add data attributes for custom CSS tooltips
+    targetElement.setAttribute('data-tooltip', text);
+    targetElement.setAttribute('data-tooltip-position', position);
+    targetElement.classList.add('has-tooltip');
+  }
+}
+
+// Export as both a class and an instance
+export const uiComponents = new UIComponents();
+export default uiComponents;
+
+================================================
+File: /components/modules/index.js
+================================================
+/**
+ * Module index
+ * Main entry point for modular functionality
+ */
+
+import promptManager from './PromptManager.js';
+import buttonManager from './ButtonManager.js';
+import uiComponents from './UIComponents.js';
+import apiClient from './APIClient.js';
+
+// Export individual modules
+export {
+  promptManager,
+  buttonManager,
+  uiComponents,
+  apiClient
+};
+
+// Setup global references for backward compatibility
+// This is temporary until content.js is fully modularized
+window.BOBBY_MODULES = {
+  promptManager,
+  buttonManager,
+  uiComponents,
+  apiClient
+};
+
+// Log that modules are ready
+console.log('Bobby modules initialized');
+
+// Export default object with all modules
+export default {
+  promptManager,
+  buttonManager,
+  uiComponents,
+  apiClient
+};
+
+================================================
+File: /components/modules/ModuleLoader.js
+================================================
+/**
+ * ModuleLoader.js
+ * Loads and initializes modules while maintaining backward compatibility
+ */
+
+import promptManager from './PromptManager.js';
+import uiComponents from './UIComponents.js';
+import buttonManager from './ButtonManager.js';
+import apiClient from './APIClient.js';
+
+class ModuleLoader {
+  constructor() {
+    this.modules = {
+      promptManager,
+      uiComponents,
+      buttonManager,
+      apiClient
+    };
+    
+    // Create global references for backward compatibility
+    this.setupBackwardCompatibility();
+  }
+  
+  /**
+   * Setup backward compatibility by exposing key functions
+   * as global functions that match the original implementation
+   */
+  setupBackwardCompatibility() {
+    // Expose promptTypes globally
+    window.promptTypes = promptManager.promptTypes;
+    
+    // Expose key functions as global functions
+    window.prettyNameFor = (promptId) => promptManager.prettyNameFor(promptId);
+    window.analyzeTextForPromptSuggestions = (text) => promptManager.analyzeTextForPromptSuggestions(text);
+    window.determineRelevantPrompts = (text) => promptManager.determineRelevantPrompts(text);
+    
+    // Make sendToOpenAI use our new module
+    window.sendToOpenAI = async (text, promptType) => {
+      const response = await apiClient.sendToOpenAI(text, promptType, promptManager.promptTypes);
+      return response;
+    };
+    
+    // Expose button management functions
+    window.convertButtonsToIconOnly = (buttons) => {
+      // If no buttons are provided, find them
+      if (!buttons) {
+        buttons = document.querySelectorAll('.prompt-toggle');
+      }
+      buttonManager.convertButtonsToIconOnly(buttons);
+    };
+    
+    // Set up the button observer
+    window.setupButtonObserver = () => {
+      buttonManager.setupButtonObserver('.prompt-toggle');
+    };
+    
+    // Make createPromptButton use our new module
+    window.createPromptButton = (promptId, isActive, clickHandler) => {
+      return promptManager.createPromptButton(promptId, isActive, clickHandler);
+    };
+    
+    console.log('Module loader initialized with backward compatibility');
+  }
+  
+  /**
+   * Get a module by name
+   * @param {string} name - Module name
+   * @returns {Object} The requested module
+   */
+  getModule(name) {
+    return this.modules[name];
+  }
+}
+
+// Create and export a singleton instance
+export const moduleLoader = new ModuleLoader();
+export default moduleLoader;
+
+================================================
+File: /history.html
+================================================
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat History</title>
+    <style>
+        .chat-entry {
+            border-bottom: 1px solid #ccc;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <div id="history-container"></div>
+    <script src="history.js"></script>
+</body>
+</html> 
+
+================================================
+File: /history.js
+================================================
+// History management for Bobby
+class HistoryManager {
+  constructor() {
+    this.MAX_HISTORY_ITEMS = 50; // Maximum number of items to store
+  }
+
+  async addToHistory(query, response, promptType) {
+    try {
+      const history = await this.getHistory();
+      const newItem = {
+        timestamp: Date.now(),
+        query,
+        response,
+        promptType
+      };
+
+      // Add new item to the beginning
+      history.unshift(newItem);
+
+      // Keep only the latest MAX_HISTORY_ITEMS
+      if (history.length > this.MAX_HISTORY_ITEMS) {
+        history.pop();
+      }
+
+      await chrome.storage.local.set({ 'bobby_history': history });
+      return true;
+    } catch (error) {
+      console.error('Failed to add to history:', error);
+      return false;
+    }
+  }
+
+  async getHistory() {
+    try {
+      const result = await chrome.storage.local.get('bobby_history');
+      return result.bobby_history || [];
+    } catch (error) {
+      console.error('Failed to get history:', error);
+      return [];
+    }
+  }
+
+  async clearHistory() {
+    try {
+      await chrome.storage.local.remove('bobby_history');
+      return true;
+    } catch (error) {
+      console.error('Failed to clear history:', error);
+      return false;
+    }
+  }
+
+  formatDate(timestamp) {
+    return new Date(timestamp).toLocaleString();
+  }
+}
+
+// Export for use in other files
+window.HistoryManager = new HistoryManager(); 
+
+document.addEventListener('DOMContentLoaded', function() {
+    chrome.storage.local.get(['chatHistory'], function(result) {
+        const history = result.chatHistory || [];
+        const container = document.getElementById('history-container');
+        
+        history.reverse().forEach(chat => {
+            const chatDiv = document.createElement('div');
+            chatDiv.className = 'chat-entry';
+            chatDiv.innerHTML = `
+                <div class="timestamp">${new Date(chat.timestamp).toLocaleString()}</div>
+                <div class="prompt"><strong>You:</strong> ${chat.prompt}</div>
+                <div class="response"><strong>AI:</strong> ${chat.response}</div>
+            `;
+            container.appendChild(chatDiv);
+        });
+    });
+}); 
+
+================================================
+File: /manifest.json
+================================================
+{
+  "manifest_version": 3,
+  "name": "Bobby - Your Reading Buddy",
+  "description": "Meet Bobby, your friendly reading companion! Highlight text to get instant explanations and insights. Like Clippy, but actually helpful.",
+  "version": "1.0.0",
+  "icons": {
+    "128": "icon.png"
+  },
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "storage",
+    "scripting",
+    "unlimitedStorage",
+    "background"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [{
+    "matches": [
+      "<all_urls>",
+      "http://*/*.pdf",
+      "https://*/*.pdf",
+      "file://*/*.pdf"
+    ],
+    "css": ["styles.css"],
+    "js": [
+      "config.js",
+      "draggable.js",
+      "history.js",
+      "components/HallucinationDetector.js",
+      "components/ModuleInitializer.js",
+      "content.js"
+    ],
+    "run_at": "document_idle"
+  }],
+  "commands": {
+    "quick-explain": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Explain selected text"
+    }
+  },
+  "host_permissions": [
+    "https://api.openai.com/*",
+    "https://api.exa.ai/*",
+    "https://api.perplexity.ai/*",
+    "file:///*"
+  ],
+  "web_accessible_resources": [{
+    "resources": [
+      "styles.css",
+      "icon.png",
+      "assets/*.svg",
+      "assets/*.png",
+      "components/modules/*.js",
+      "components/*.js"
+    ],
+    "matches": ["<all_urls>"]
+  }],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "chrome_url_overrides": {
+    "history": "history.html"
+  },
+  "options_page": "options.html"
+} 
+
+================================================
+File: /options.html
+================================================
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bobby Settings</title>
+  <style>
+    body {
+      padding: 20px;
+      font-family: system-ui;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 300px;
+      padding: 5px;
+    }
+    button {
+      padding: 8px 15px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 10px;
+      color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <h2>Bobby API Configuration</h2>
+  
+  <div class="input-group">
+    <label for="openai">OpenAI API Key:</label>
+    <input type="password" id="openai" />
+  </div>
+
+  <div class="input-group">
+    <label for="exa">Exa API Key:</label>
+    <input type="password" id="exa" />
+  </div>
+
+  <div class="input-group">
+    <label for="pplx">Perplexity API Key:</label>
+    <input type="password" id="pplx" />
+  </div>
+
+  <button id="save">Save Settings</button>
+  <div id="status" class="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html> 
+
+================================================
+File: /config.example.js
+================================================
+// Rename this file to config.js and add your API keys
+window.BOBBY_CONFIG = {
+  OPENAI_API_KEY: 'your-openai-api-key-here',
+  EXA_API_KEY: 'your-exa-api-key-here',
+}; 
+
+================================================
+File: /content.js
+================================================
 // Check if script is already initialized
 if (typeof window.__quickExplainInitialized === 'undefined') {
   // Wait for config to load before initializing
@@ -4259,3 +9183,46 @@ if (typeof window.__quickExplainInitialized === 'undefined') {
     console.error('Config loading error:', error);
   });
 } 
+
+
+================================================
+File: /CLAUDE.md
+================================================
+# AI Reader Browser Extension Guidelines
+
+## Development Commands
+- **Setup**: Copy `config.example.js` to `config.js` and add API keys (OpenAI, Exa, Perplexity)
+- **Build**: No build required - works directly from source
+- **Testing**: Load unpacked in Chrome (chrome://extensions → Load unpacked)
+- **Debugging**: Chrome DevTools (F12) → inspect background/content scripts
+- **Reload**: After changes, click "Reload" on chrome://extensions or press Ctrl+R in devtools
+- **Testing Single Feature**: Add console logs and verify in DevTools Console panel
+- **Manual Testing**: Test on varied websites (news, blogs, documentation) with different content types
+- **Key Files**: Check `content.js` (UI), `APIClient.js` (external APIs), `PromptManager.js` (prompts)
+
+## Code Style
+- **Naming**: camelCase (variables/functions), PascalCase (classes/components)
+- **Formatting**: 2-space indent, semicolons required, consistent braces
+- **Imports**: Group by type (core, third-party, local) with blank line between
+- **Error Handling**: try/catch with descriptive messages, log with console.error
+- **Types**: Use JSDoc annotations (e.g. `@param {string} name`, `@returns {Promise<Object>}`)
+- **Line Length**: Maximum 100 characters
+- **Async**: Prefer async/await over Promise chains
+- **Classes**: Export both class and singleton instance (e.g. `export default & export const instance`)
+- **Caching**: Implement caching for API responses to improve performance
+- **Modularity**: Create small, focused functions; avoid side effects
+
+## Project Architecture
+- **background.js**: Service worker for API requests and background processing
+- **content.js**: DOM manipulation and primary user interface
+- **components/modules/**: Core functionality (PromptManager, ButtonManager, APIClient)
+- **State Management**: Use Chrome storage API for persistence
+- **API Integration**: External APIs (OpenAI, Exa, Perplexity) via APIClient module
+- **UI Components**: Use native DOM APIs with event-driven architecture
+- **Responsive Design**: Support for both light/dark mode and different screen sizes
+- **PDF Support**: Extension works with both web and local PDF documents:
+  - Native Chrome PDF viewer support
+  - PDF.js renderer detection and compatibility
+  - Local PDFs via "Allow access to file URLs" setting
+  - Adaptive layouts for PDF contexts
+
